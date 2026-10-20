@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "litreview"
+version = "0.1.0"
+description = "Grounded literature-review generation with multi-agent LLMs and citation-relation learning"
+requires-python = ">=3.10,<3.14"
+authors = [{ name = "Siddharth Ray" }]
+dependencies = [
+  # mining / corpus
+  "pylatexenc>=2.10",
+  "rapidfuzz>=3.9",
+  "feedparser>=6.0",
+  "requests>=2.32",
+  "tqdm>=4.66",
+  # data
+  "pydantic>=2.7",
+  "pandas>=2.2",
+  "numpy>=1.26",
+  "python-dotenv>=1.0",
+  # agents / llm
+  "crewai>=0.80",
+  "litellm>=1.50",
+  # synthesis
+  "networkx>=3.3",
+  "pyvis>=0.3.2",
+  # report
+  "python-docx>=1.1",
+  "matplotlib>=3.9",
+  "seaborn>=0.13",
+]
+
+[project.optional-dependencies]
+ml = [
+  "torch>=2.4",
+  "transformers>=4.44",
+  "datasets>=2.20",
+  "accelerate>=0.33",
+  "scikit-learn>=1.5",
+  "sentence-transformers>=3.0",
+  "peft>=0.12",
+]
+eval = [
+  "rouge-score>=0.1.2",
+  "bert-score>=0.3.13",
+  "absl-py>=2.1",
+  "nltk>=3.9",
+]
+dev = ["pytest>=8.2", "ruff>=0.6"]
+app = ["streamlit>=1.37"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"

@@ -75,9 +75,14 @@ def label_batch(batch: Sequence[dict], size_hint: str = "large") -> list[dict]:
         # cheaper per context, which matters under a tokens-per-minute cap.
         # Output tokens are the binding limit on this provider, so the reply is
         # kept terse and budgeted separately from the prompt.
+        # max_tokens is kept tight on purpose: the provider meters its
+        # output-token budget against what a request *asks* for, so leaving it at
+        # the global default reserves far more of the per-minute allowance than
+        # the reply actually uses and the next call is refused.
         data = complete_json(_prompt(batch), system=SYSTEM, size=size_hint,
                              est_tokens=210 * len(batch) + 550,
-                             est_output=40 * len(batch) + 60)
+                             est_output=45 * len(batch) + 80,
+                             max_tokens=55 * len(batch) + 150)
     if isinstance(data, dict):
         data = data.get("items") or data.get("labels") or [data]
     by_item: dict[int, dict] = {}

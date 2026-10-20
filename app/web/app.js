@@ -283,7 +283,10 @@ LOADERS.run = async () => {
   const d = await api("/api/commands");
   if (d.error) return;
   $("#commands").innerHTML = `<h3>Pipeline commands</h3>
-    <p class="panel-sub">These start the project's own scripts. Nothing else can be run.</p>` +
+    <p class="panel-sub">These start the project's own scripts. Nothing else can be run.
+      On a free API tier each model call waits for the per-minute token budget, so a
+      demo takes several minutes and the Flow longer. Progress appears on the right;
+      everything is cached, so stopping and restarting loses nothing.</p>` +
     d.commands.map(c => `<div class="cmd" data-cmd="${esc(c.id)}">
       <h4>${esc(c.label)}</h4>
       <div class="fields">

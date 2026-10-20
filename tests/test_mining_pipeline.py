@@ -116,3 +116,46 @@ def test_multixscience_converts_into_the_rw_pairs_schema(tmp_path):
     assert r["source"] == "multi-xscience" and r["split"] == "test"
     assert len(r["cited"]) == 3 and r["abstract_coverage"] == 1.0
     assert set(r) >= {"arxiv_id", "rw_text", "cited", "abstract_coverage", "rw_paragraphs"}
+
+
+# -------------------------------- identifier-first resolution (DOI / arXiv id)
+
+def test_parse_identifiers_from_bib_bbl_and_inlined():
+    from litreview.mining.latex_mining import parse_identifiers
+    files = {
+        "r.bib": "@article{a, title={X}, doi={10.18653/v1/2022.acl-demo.9}, year={2022}}\n"
+                 "@misc{b, title={Y}, eprint={2204.01691}, archivePrefix={arXiv}}\n"
+                 "@article{c, title={Z}, journal={Nature}}\n",
+        "r.bbl": r"\bibitem{d} A. Author. \newblock Some title. \newblock arXiv:2111.10952.",
+    }
+    ids = parse_identifiers(files)
+    assert ids["a"]["doi"] == "10.18653/v1/2022.acl-demo.9"
+    assert ids["b"]["arxiv_id"] == "2204.01691"
+    assert ids["d"]["arxiv_id"] == "2111.10952"
+    assert "c" not in ids, "an entry with no identifier must not appear"
+
+
+def test_resolver_prefers_an_arxiv_identifier_over_a_title_guess():
+    from litreview.mining.pipeline import Resolver
+
+    class _Cache:
+        cache = {"A fuzzy title": {"abstract": "from openalex", "openalex_id": "W1"}}
+
+    paper = {"keymap": {"k1": "A fuzzy title", "k2": "Another title"},
+             "identifiers": {"k1": {"arxiv_id": "2204.01691"}}}
+    r = Resolver(_Cache(), {"2204.01691": {"title": "Exact arXiv title",
+                                           "abstract": "from arxiv", "source": "arxiv"}})
+    title, meta = r(paper, "k1")
+    assert meta["abstract"] == "from arxiv", "identifier match must win"
+    title2, meta2 = r(paper, "k2")
+    assert meta2 is None, "no identifier and no cached title -> unresolved"
+
+
+def test_arxiv_ids_for_collects_only_related_work_citations():
+    from litreview.mining.pipeline import arxiv_ids_for
+    mined = {"p1": {"related_work": {"cited_keys": ["k1", "k2"]},
+                    "identifiers": {"k1": {"arxiv_id": "1111.1111"},
+                                    "k2": {"doi": "10.1/x"},
+                                    "k3": {"arxiv_id": "9999.9999"}}},
+             "p2": {"related_work": None, "identifiers": {"z": {"arxiv_id": "2222.2222"}}}}
+    assert arxiv_ids_for(mined) == ["1111.1111"]

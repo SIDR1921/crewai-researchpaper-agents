@@ -63,12 +63,19 @@ class OpenAlexCache:
     """Thread-safe JSON cache keyed by the raw query title."""
 
     def __init__(self, path: str | Path | None = None, mailto: str | None = None,
-                 delay: float = 0.12) -> None:
+                 delay: float = 0.12, api_key: str | None = None) -> None:
         self.path = Path(path) if path else paths().data / "openalex_cache.json"
-        self.mailto = mailto or secret("OPENALEX_MAILTO") or "litreview@example.com"
+        self.mailto = mailto or secret("OPENALEX_MAILTO") or None
+        # OpenAlex's anonymous tier is a small daily budget shared by everyone on
+        # the same network IP, so a shared connection exhausts it quickly. A free
+        # key raises it and is read from the environment, never hard-coded.
+        self.api_key = api_key or secret("OPENALEX_API_KEY") or None
         self.delay = delay
         self._lock = threading.Lock()
         self.backoff_until = 0.0
+        self.headers = {"User-Agent": USER_AGENT}
+        if self.api_key:
+            self.headers["Authorization"] = f"Bearer {self.api_key}"
         self.cache: dict[str, dict | None] = {}
         if self.path.exists():
             try:
@@ -122,8 +129,7 @@ class OpenAlexCache:
             params["mailto"] = self.mailto
         for i in range(attempts):
             try:
-                r = requests.get(OPENALEX, timeout=45,
-                                 headers={"User-Agent": USER_AGENT}, params=params)
+                r = requests.get(OPENALEX, timeout=45, headers=self.headers, params=params)
             except Exception:
                 time.sleep(min(30, 2 ** i))
                 continue
@@ -192,6 +198,48 @@ class OpenAlexCache:
         self.save()
         return {t: self.cache.get(t) for t in titles}
 
+    def resolve_dois(self, dois: list[str], chunk: int = 50, progress=None) -> dict[str, dict]:
+        """``doi -> metadata`` via OpenAlex's ``filter=doi:a|b|...``.
+
+        Fifty works per request rather than one, which matters because the free
+        daily budget is spent per *request*: resolving a thousand references by
+        title search costs the whole day's allowance, and the same thousand by DOI
+        costs twenty requests.
+        """
+        clean, out = [], {}
+        for d in dois:
+            d = (d or "").strip().lower()
+            d = d.replace("https://doi.org/", "").replace("doi:", "").strip()
+            if d.startswith("10.") and "|" not in d:
+                clean.append(d)
+        clean = sorted(set(clean))
+        batches = [clean[i:i + chunk] for i in range(0, len(clean), chunk)]
+        it = progress(batches) if progress else batches
+        for batch in it:
+            self._wait_for_backoff()
+            params = {"filter": "doi:" + "|".join(batch), "per_page": len(batch),
+                      "select": SELECT}
+            if self.mailto:
+                params["mailto"] = self.mailto
+            try:
+                r = requests.get(OPENALEX, timeout=60, headers=self.headers, params=params)
+                if r.status_code == 429:
+                    wait = float(r.headers.get("Retry-After") or 30)
+                    with self._lock:
+                        self.backoff_until = time.monotonic() + min(wait, 120)
+                    continue
+                if not r.ok:
+                    continue
+                results = r.json().get("results", [])
+            except Exception:
+                continue
+            for w in results:
+                doi = (w.get("doi") or "").replace("https://doi.org/", "").lower()
+                if doi:
+                    out[doi] = normalise(w, 100.0) | {"source": "openalex-doi"}
+            time.sleep(self.delay)
+        return out
+
     # ---------------------------------------------------- topic / seed searches
 
     def search_topic(self, query: str, per_page: int = 50, from_year: int | None = None,
@@ -199,8 +247,9 @@ class OpenAlexCache:
         """Relevance-ranked OpenAlex search, used by the corpus builder."""
         out: list[dict] = []
         for page in range(1, pages + 1):
-            params = {"search": query, "per_page": per_page, "page": page,
-                      "mailto": self.mailto, "select": SELECT}
+            params = {"search": query, "per_page": per_page, "page": page, "select": SELECT}
+            if self.mailto:
+                params["mailto"] = self.mailto
             filt = []
             if from_year:
                 filt.append(f"from_publication_date:{from_year}-01-01")
@@ -209,7 +258,7 @@ class OpenAlexCache:
             if filt:
                 params["filter"] = ",".join(filt)
             try:
-                r = requests.get(OPENALEX, timeout=45, headers={"User-Agent": USER_AGENT}, params=params)
+                r = requests.get(OPENALEX, timeout=45, headers=self.headers, params=params)
                 res = r.json().get("results", [])
             except Exception:
                 break
@@ -230,9 +279,8 @@ class OpenAlexCache:
             ids = self.cache[key] or []
         else:
             try:
-                r = requests.get(f"{OPENALEX}/{wid}", timeout=30,
-                                 headers={"User-Agent": USER_AGENT},
-                                 params={"mailto": self.mailto, "select": "id,referenced_works"})
+                r = requests.get(f"{OPENALEX}/{wid}", timeout=30, headers=self.headers,
+                                 params={"select": "id,referenced_works"})
                 ids = (r.json().get("referenced_works") or [])[:limit] \
                     if direction == "references" else []
             except Exception:
@@ -242,9 +290,9 @@ class OpenAlexCache:
             time.sleep(self.delay)
         if direction == "citations":
             try:
-                r = requests.get(OPENALEX, timeout=45, headers={"User-Agent": USER_AGENT},
-                                 params={"filter": f"cites:{wid}", "per_page": min(limit, 50),
-                                         "mailto": self.mailto, "select": SELECT})
+                r = requests.get(OPENALEX, timeout=45, headers=self.headers,
+                                 params={"filter": f"cites:{wid}",
+                                         "per_page": min(limit, 50), "select": SELECT})
                 return [normalise(w) for w in r.json().get("results", [])]
             except Exception:
                 return []
@@ -252,9 +300,9 @@ class OpenAlexCache:
         for chunk_start in range(0, len(ids), 50):
             chunk = [i.rstrip("/").split("/")[-1] for i in ids[chunk_start:chunk_start + 50]]
             try:
-                r = requests.get(OPENALEX, timeout=45, headers={"User-Agent": USER_AGENT},
+                r = requests.get(OPENALEX, timeout=45, headers=self.headers,
                                  params={"filter": f"openalex_id:{'|'.join(chunk)}",
-                                         "per_page": 50, "mailto": self.mailto, "select": SELECT})
+                                         "per_page": 50, "select": SELECT})
                 out += [normalise(w) for w in r.json().get("results", [])]
             except Exception:
                 pass

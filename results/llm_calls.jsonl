@@ -1,0 +1,1 @@
+{"ts": 1792520915.523574, "tag": "extract", "model": "groq/qwen/qwen3.8-27b", "source": "crewai", "call_type": "LLMCallType.LLM_CALL", "ok": true, "prompt_tokens": 633, "completion_tokens": 804, "total_tokens": 1437, "latency_s": 2.039, "cost_usd": 0.0}

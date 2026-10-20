@@ -36,6 +36,7 @@ def main() -> int:
         tuple(args.train_window), tuple(args.test_window), seed=args.seed,
         fetch_progress=lambda ps, s: tqdm(ps, desc=f"fetch {s}"),
         progress=lambda ps, s: tqdm(ps, desc=f"parse {s}"),
+        arxiv_progress=lambda bs: tqdm(bs, desc="arxiv meta"),
         oa_progress=lambda ts: tqdm(ts, desc="openalex"),
     )
     print(json.dumps(report, indent=2))

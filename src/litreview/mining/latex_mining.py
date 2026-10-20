@@ -395,6 +395,7 @@ def mine_paper(files: dict) -> dict | None:
     result = {
         "main_file": main,
         "keymap": keymap,
+        "identifiers": parse_identifiers(files, inlined_tex=tex),
         "all_contexts": citation_contexts(full_text),
         "sections": section_map(tex),
         "n_cites_total": len(CITE_RE.findall(tex)),
@@ -411,3 +412,57 @@ def mine_paper(files: dict) -> dict | None:
             "cited_keys": sorted({c["cite_key"] for c in citation_contexts(rw_text)}),
         }
     return result
+
+
+# ---------- bibliography identifiers ----------
+
+DOI_RE = re.compile(r"\b(10\.\d{4,9}/[^\s\",}\\]+)", re.I)
+ARXIV_RE = re.compile(
+    r"(?:arxiv\s*[:.]?\s*|eprint\s*=\s*[{\"]?\s*|abs/)((?:[a-z-]+(?:\.[A-Z]{2})?/)?\d{4}\.?\d{4,5})",
+    re.I)
+
+
+def _identifiers_in(block: str) -> dict:
+    """DOI and arXiv id found anywhere in one bibliography entry."""
+    out: dict[str, str] = {}
+    if m := DOI_RE.search(block):
+        out["doi"] = m.group(1).rstrip(".,;")
+    if m := ARXIV_RE.search(block):
+        out["arxiv_id"] = m.group(1).replace(".", ".", 1)
+    return out
+
+
+def parse_identifiers(files: dict, inlined_tex: str | None = None) -> dict[str, dict]:
+    """``cite key -> {doi, arxiv_id}`` from ``.bib``, ``.bbl`` and inlined bibliographies.
+
+    Roughly two in five entries in this corpus carry one, and an identifier
+    resolves a reference exactly, where a title match only resolves it probably.
+    """
+    out: dict[str, dict] = {}
+
+    def add(key: str, block: str) -> None:
+        ids = _identifiers_in(block)
+        if ids:
+            out.setdefault(key.strip(), {}).update(ids)
+
+    for name, content in files.items():
+        low = name.lower()
+        if low.endswith(".bib"):
+            for m in re.finditer(r"@\w+\s*[{(]\s*([^,\s]+)\s*,", content):
+                nxt = content.find("\n@", m.end())
+                add(m.group(1), content[m.end(): nxt if nxt != -1 else len(content)])
+        elif low.endswith(".bbl"):
+            _bbl_identifiers(content, add)
+    if inlined_tex and "\\bibitem" in inlined_tex:
+        _bbl_identifiers(inlined_tex, add)
+    return out
+
+
+def _bbl_identifiers(bbl: str, add) -> None:
+    for m in re.finditer(r"\\entry\{([^}]+)\}\{[^}]*\}", bbl):
+        end = bbl.find("\\endentry", m.end())
+        add(m.group(1), bbl[m.end(): end if end != -1 else len(bbl)])
+    for m in re.finditer(
+        r"\\bibitem(?:\[[^\]]*(?:\{[^}]*\}[^\]]*)*\])?\s*\{([^}]+)\}"
+        r"(.*?)(?=\\bibitem|\\end\{thebibliography\}|\Z)", bbl, re.S):
+        add(m.group(1), m.group(2))

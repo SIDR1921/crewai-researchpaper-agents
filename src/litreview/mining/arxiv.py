@@ -177,3 +177,47 @@ ARXIV_ID_RE = re.compile(r"(\d{4}\.\d{4,5})(v\d+)?")
 def arxiv_id_from_any(s: str) -> str | None:
     m = ARXIV_ID_RE.search(s or "")
     return m.group(1) if m else None
+
+
+# --------------------------------------------------------------- metadata by id
+
+ABS_BATCH = 100
+
+
+def fetch_metadata(ids: list[str], chunk: int = ABS_BATCH, progress=None) -> dict[str, dict]:
+    """``arxiv_id -> {title, abstract, year, authors, venue}`` via the API's ``id_list``.
+
+    One request returns up to a hundred papers, which makes this far cheaper than a
+    search per title and, unlike OpenAlex, costs nothing against a daily budget.
+    For a corpus mined from arXiv it is also the more authoritative source: these
+    are the abstracts of the exact versions being cited.
+    """
+    out: dict[str, dict] = {}
+    clean = [i.strip() for i in ids if i and i.strip()]
+    batches = [clean[i:i + chunk] for i in range(0, len(clean), chunk)]
+    it = progress(batches) if progress else batches
+    for batch in it:
+        _throttle()
+        try:
+            r = requests.get(ARXIV_API, timeout=120, headers=HEADERS,
+                             params={"id_list": ",".join(batch), "max_results": len(batch)})
+            feed = feedparser.parse(r.text)
+        except Exception:
+            continue
+        for e in feed.entries:
+            raw = e.id.split("/abs/")[-1]
+            aid = raw.split("v")[0]
+            out[aid] = {
+                "arxiv_id": aid,
+                "openalex_id": None,
+                "title": " ".join(e.title.split()),
+                "abstract": " ".join(e.summary.split()),
+                "year": int(e.published[:4]) if getattr(e, "published", "") else None,
+                "venue": "arXiv preprint",
+                "doi": getattr(e, "arxiv_doi", None),
+                "authors": [a.get("name") for a in getattr(e, "authors", [])],
+                "cited_by_count": None,
+                "match_score": 100.0,          # matched by identifier, not by title
+                "source": "arxiv",
+            }
+    return out

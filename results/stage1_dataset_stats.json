@@ -1,53 +1,340 @@
 {
   "rw_pairs": {
-    "available": false
+    "available": true,
+    "n_papers": 80,
+    "by_split": {
+      "train": 57,
+      "test": 23
+    },
+    "rw_words": {
+      "n": 80,
+      "min": 113.0,
+      "p25": 307.75,
+      "median": 420.0,
+      "mean": 511.725,
+      "p75": 593.5,
+      "max": 2944.0
+    },
+    "n_cited": {
+      "n": 80,
+      "min": 5.0,
+      "p25": 15.0,
+      "median": 20.0,
+      "mean": 24.125,
+      "p75": 30.0,
+      "max": 63.0
+    },
+    "abstract_coverage": {
+      "n": 80,
+      "min": 0.6,
+      "p25": 0.667,
+      "median": 0.74,
+      "mean": 0.762,
+      "p75": 0.833,
+      "max": 1.0
+    },
+    "rw_sentences": {
+      "n": 80,
+      "min": 1.0,
+      "p25": 10.0,
+      "median": 14.0,
+      "mean": 17.525,
+      "p75": 19.0,
+      "max": 120.0
+    },
+    "rw_level": {
+      "section": 77,
+      "paragraph": 2,
+      "subsection": 1
+    },
+    "rw_title_examples": [
+      "Background",
+      "Background and Related Work",
+      "Background for LLMs",
+      "Extended Related Work",
+      "Instruct tasks",
+      "Literature Review",
+      "Motivation and Related Work",
+      "Recall of factual associations.",
+      "Related Work",
+      "Related Works",
+      "Related work",
+      "Related work and positioning"
+    ],
+    "date_range": {
+      "min": "2023-01-31",
+      "max": "2026-09-30"
+    }
   },
   "citation_contexts": {
     "available": true,
-    "n_rows": 11356,
-    "n_citing_papers": 173,
-    "n_cited_titles": 6312,
-    "resolved_to_openalex": 32,
-    "with_cited_abstract": 30,
-    "in_related_work": 3226,
+    "n_rows": 15704,
+    "n_citing_papers": 185,
+    "n_cited_titles": 8436,
+    "resolved_to_openalex": 1783,
+    "with_cited_abstract": 5554,
+    "in_related_work": 3652,
     "by_split": {
-      "train": 8343,
-      "test": 3013
+      "train": 12797,
+      "test": 2907
     },
     "cites_per_sentence": {
-      "n": 11356,
+      "n": 15704,
       "min": 1.0,
       "p25": 1.0,
       "median": 2.0,
-      "mean": 3.411,
+      "mean": 3.327,
       "p75": 4.0,
-      "max": 19.0
+      "max": 28.0
     },
     "context_words": {
-      "n": 11356,
-      "min": 21.0,
-      "p25": 60.0,
-      "median": 75.0,
-      "mean": 82.837,
-      "p75": 96.0,
-      "max": 611.0
+      "n": 15704,
+      "min": 16.0,
+      "p25": 63.0,
+      "median": 78.0,
+      "mean": 83.988,
+      "p75": 97.0,
+      "max": 1437.0
     },
     "contexts_per_citing_paper": {
-      "n": 173,
-      "min": 13.0,
-      "p25": 42.0,
-      "median": 56.0,
-      "mean": 65.642,
-      "p75": 86.0,
-      "max": 193.0
+      "n": 185,
+      "min": 1.0,
+      "p25": 38.0,
+      "median": 61.0,
+      "mean": 84.886,
+      "p75": 97.0,
+      "max": 2286.0
     }
   },
   "multixscience": {
-    "available": false
+    "available": true,
+    "n_papers": 300,
+    "by_split": {
+      "test": 300
+    },
+    "rw_words": {
+      "n": 300,
+      "min": 25.0,
+      "p25": 91.75,
+      "median": 119.0,
+      "mean": 121.25,
+      "p75": 154.25,
+      "max": 198.0
+    },
+    "n_cited": {
+      "n": 300,
+      "min": 3.0,
+      "p25": 4.0,
+      "median": 5.0,
+      "mean": 6.01,
+      "p75": 7.25,
+      "max": 19.0
+    },
+    "abstract_coverage": {
+      "n": 300,
+      "min": 0.615,
+      "p25": 0.75,
+      "median": 0.857,
+      "mean": 0.86,
+      "p75": 1.0,
+      "max": 1.0
+    },
+    "rw_sentences": {
+      "n": 300,
+      "min": 1.0,
+      "p25": 4.0,
+      "median": 5.0,
+      "mean": 5.51,
+      "p75": 7.0,
+      "max": 13.0
+    },
+    "rw_level": {
+      "section": 300
+    },
+    "rw_title_examples": [
+      "Related Work"
+    ],
+    "date_range": {
+      "min": null,
+      "max": null
+    }
+  },
+  "histograms": {
+    "rw_words": {
+      "counts": [
+        15,
+        26,
+        18,
+        9,
+        6,
+        2,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      "edges": [
+        113.0,
+        270.278,
+        427.556,
+        584.833,
+        742.111,
+        899.389,
+        1056.667,
+        1213.944,
+        1371.222,
+        1528.5,
+        1685.778,
+        1843.056,
+        2000.333,
+        2157.611,
+        2314.889,
+        2472.167,
+        2629.444,
+        2786.722,
+        2944.0
+      ],
+      "centers": [
+        191.639,
+        348.917,
+        506.194,
+        663.472,
+        820.75,
+        978.028,
+        1135.306,
+        1292.583,
+        1449.861,
+        1607.139,
+        1764.417,
+        1921.694,
+        2078.972,
+        2236.25,
+        2393.528,
+        2550.806,
+        2708.083,
+        2865.361
+      ]
+    },
+    "n_cited": {
+      "counts": [
+        4,
+        7,
+        6,
+        10,
+        17,
+        7,
+        2,
+        8,
+        1,
+        4,
+        4,
+        2,
+        0,
+        5,
+        1,
+        0,
+        0,
+        2
+      ],
+      "edges": [
+        5.0,
+        8.222,
+        11.444,
+        14.667,
+        17.889,
+        21.111,
+        24.333,
+        27.556,
+        30.778,
+        34.0,
+        37.222,
+        40.444,
+        43.667,
+        46.889,
+        50.111,
+        53.333,
+        56.556,
+        59.778,
+        63.0
+      ],
+      "centers": [
+        6.611,
+        9.833,
+        13.056,
+        16.278,
+        19.5,
+        22.722,
+        25.944,
+        29.167,
+        32.389,
+        35.611,
+        38.833,
+        42.056,
+        45.278,
+        48.5,
+        51.722,
+        54.944,
+        58.167,
+        61.389
+      ]
+    },
+    "abstract_coverage": {
+      "counts": [
+        11,
+        8,
+        5,
+        15,
+        6,
+        9,
+        7,
+        5,
+        2,
+        5,
+        2,
+        5
+      ],
+      "edges": [
+        0.6,
+        0.633,
+        0.667,
+        0.7,
+        0.733,
+        0.767,
+        0.8,
+        0.833,
+        0.867,
+        0.9,
+        0.933,
+        0.967,
+        1.0
+      ],
+      "centers": [
+        0.617,
+        0.65,
+        0.683,
+        0.717,
+        0.75,
+        0.783,
+        0.817,
+        0.85,
+        0.883,
+        0.917,
+        0.95,
+        0.983
+      ]
+    }
   },
   "time_split": {
-    "train_latest": null,
-    "test_earliest": null,
-    "disjoint": false
+    "train_latest": "2024-12-31",
+    "test_earliest": "2026-06-30",
+    "disjoint": true
   }
 }

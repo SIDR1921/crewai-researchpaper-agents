@@ -1,1 +1,3 @@
 {"ts": 1792520915.523574, "tag": "extract", "model": "groq/qwen/qwen3.8-27b", "source": "crewai", "call_type": "LLMCallType.LLM_CALL", "ok": true, "prompt_tokens": 633, "completion_tokens": 804, "total_tokens": 1437, "latency_s": 2.039, "cost_usd": 0.0}
+{"ts": 1792524505.748051, "tag": "probe", "model": "groq/qwen/qwen3.8-27b", "source": "crewai", "call_type": "LLMCallType.LLM_CALL", "ok": true, "prompt_tokens": 19, "completion_tokens": 2, "total_tokens": 21, "latency_s": 0.305, "cost_usd": 0.0}
+{"ts": 1792524506.999549, "tag": "relation_labelling", "model": "groq/qwen/qwen3.8-27b", "source": "crewai", "call_type": "LLMCallType.LLM_CALL", "ok": true, "prompt_tokens": 1854, "completion_tokens": 438, "total_tokens": 2292, "latency_s": 1.134, "cost_usd": 0.0}

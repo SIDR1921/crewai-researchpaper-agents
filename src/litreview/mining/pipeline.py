@@ -168,6 +168,22 @@ def write_datasets(mined: dict, resolve, data_dir: Path,
             "rw_pairs_dropped_too_few_cites": dropped_few}
 
 
+def _load_cache(path: Path) -> dict:
+    if path.exists():
+        try:
+            return json.loads(path.read_text())
+        except json.JSONDecodeError:
+            return {}
+    return {}
+
+
+def _save_cache(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data))
+    tmp.replace(path)
+
+
 def run_stage1(n_train: int, n_test: int, categories: list[str] | None = None,
                train_window: tuple[str, str] = TRAIN_WINDOW,
                test_window: tuple[str, str] = TEST_WINDOW,
@@ -191,10 +207,25 @@ def run_stage1(n_train: int, n_test: int, categories: list[str] | None = None,
 
     # Resolve by identifier first: arXiv ids come back exact, in batches of a
     # hundred, and cost nothing against OpenAlex's daily budget.
+    # Both caches persist: a reference resolved once is never resolved again, which
+    # matters because OpenAlex's daily budget can run out mid-run and a re-run the
+    # next day must pick up where this one stopped rather than start over.
+    ax_cache_path = P.data / "arxiv_meta_cache.json"
+    doi_cache_path = P.data / "doi_meta_cache.json"
+    arxiv_meta = _load_cache(ax_cache_path)
+    doi_meta = _load_cache(doi_cache_path)
+
     ax_ids = arxiv_ids_for(mined)
-    arxiv_meta = arxiv.fetch_metadata(ax_ids, progress=arxiv_progress) if ax_ids else {}
+    todo_ax = [i for i in ax_ids if i not in arxiv_meta]
+    if todo_ax:
+        arxiv_meta.update(arxiv.fetch_metadata(todo_ax, progress=arxiv_progress))
+        _save_cache(ax_cache_path, arxiv_meta)
+
     doi_list = identifiers_for(mined, "doi")
-    doi_meta = oa.resolve_dois(doi_list, progress=arxiv_progress) if doi_list else {}
+    todo_doi = [d for d in doi_list if d.lower() not in doi_meta]
+    if todo_doi:
+        doi_meta.update(oa.resolve_dois(todo_doi, progress=arxiv_progress))
+        _save_cache(doi_cache_path, doi_meta)
 
     # Only related-work citations need OpenAlex: the benchmark needs their abstracts.
     # Every other bibliography entry already has a title from the .bbl/.bib, which is
@@ -231,6 +262,13 @@ def run_stage1(n_train: int, n_test: int, categories: list[str] | None = None,
                      "with_abstract": with_abs,
                      "with_abstract_pct": round(100 * with_abs / max(1, len(titles)), 1)},
         "datasets": stats,
+        "budget": {
+            "openalex_daily_budget_exhausted": bool(getattr(oa, "budget_exhausted", False)),
+            "note": ("OpenAlex's free tier is a small daily budget per API key. When it runs "
+                     "out mid-run the resolver stops asking rather than sleeping for hours; "
+                     "every reference already resolved is cached, so re-running after the "
+                     "reset continues from here instead of starting over."),
+        },
         "windows_by_split": {
             s: {"min": min((p["published"] for p in ps), default=None),
                 "max": max((p["published"] for p in ps), default=None), "n": len(ps)}

@@ -18,41 +18,58 @@
   },
   "yield": {
     "listed": 200,
-    "no_source": 24,
+    "no_source": 11,
     "no_main": 0,
     "parse_error": 0,
-    "parsed": 176,
-    "no_related_work": 23,
-    "with_related_work": 153
+    "parsed": 189,
+    "no_related_work": 34,
+    "with_related_work": 155
+  },
+  "arxiv_metadata": {
+    "ids_cited_in_related_work": 1124,
+    "resolved": 1124,
+    "with_abstract": 1124
+  },
+  "doi_batch": {
+    "dois_cited_in_related_work": 738,
+    "resolved": 198,
+    "with_abstract": 160
   },
   "openalex": {
-    "unique_cited_titles": 2938,
-    "resolved": 5,
-    "resolved_pct": 0.2,
-    "with_abstract": 5,
-    "with_abstract_pct": 0.2
+    "titles_needing_search": 1830,
+    "resolved": 505,
+    "resolved_pct": 27.6,
+    "with_abstract": 450,
+    "with_abstract_pct": 24.6
   },
   "datasets": {
-    "contexts_rows": 11356,
-    "contexts_resolved_to_openalex": 32,
-    "rw_pairs_kept": 0,
-    "rw_pairs_dropped_low_coverage": 152,
-    "rw_pairs_dropped_too_few_cites": 1
+    "contexts_rows": 15704,
+    "contexts_resolved_to_openalex": 5752,
+    "rw_pairs_kept": 80,
+    "rw_pairs_dropped_low_coverage": 72,
+    "rw_pairs_dropped_too_few_cites": 3
+  },
+  "budget": {
+    "openalex_daily_budget_exhausted": true,
+    "note": "OpenAlex's free tier is a small daily budget per API key. When it runs out mid-run the resolver stops asking rather than sleeping for hours; every reference already resolved is cached, so re-running after the reset continues from here instead of starting over."
   },
   "windows_by_split": {
     "train": {
-      "min": "2024-12-19",
+      "min": "2023-01-31",
       "max": "2024-12-31",
       "n": 150
     },
     "test": {
-      "min": "2026-09-29",
+      "min": "2026-06-30",
       "max": "2026-09-30",
       "n": 50
     }
   },
   "multixscience": {
-    "available": false,
-    "error": "404 Client Error: Not Found for url: https://raw.githubusercontent.com/yaolu/Multi-XScience/master/data/test.json"
+    "split": "test",
+    "raw_examples": 5093,
+    "kept": 300,
+    "path": "/Users/siddharth1921/Claude/litreview/data/multixscience_test.jsonl",
+    "median_cited": 5
   }
 }

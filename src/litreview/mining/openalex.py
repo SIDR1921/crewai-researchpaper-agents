@@ -21,6 +21,11 @@ OPENALEX = "https://api.openalex.org/works"
 SEMANTIC_SCHOLAR = "https://api.semanticscholar.org/graph/v1/paper/search"
 SELECT = "id,doi,title,publication_year,cited_by_count,abstract_inverted_index,authorships,primary_location,type"
 MATCH_FLOOR = 88
+#: Longest we will ever sleep on a 429. OpenAlex answers an exhausted daily budget
+#: with a Retry-After of several hours; honouring that literally hangs the run, so
+#: past this the resolver gives up for this session and says so.
+MAX_BACKOFF_S = 45
+BUDGET_EXHAUSTED_S = 300
 USER_AGENT = "litreview-research (student project; contact via mailto param)"
 
 
@@ -73,6 +78,7 @@ class OpenAlexCache:
         self.delay = delay
         self._lock = threading.Lock()
         self.backoff_until = 0.0
+        self.budget_exhausted = False
         self.headers = {"User-Agent": USER_AGENT}
         if self.api_key:
             self.headers["Authorization"] = f"Bearer {self.api_key}"
@@ -100,6 +106,8 @@ class OpenAlexCache:
             return None
         if title in self.cache:
             return self.cache[title]
+        if self.budget_exhausted:
+            return None
         self._wait_for_backoff()
         results = self._search(title)
         if results is None:
@@ -134,7 +142,14 @@ class OpenAlexCache:
                 time.sleep(min(30, 2 ** i))
                 continue
             if r.status_code == 429:
-                wait = float(r.headers.get("Retry-After") or 0) or min(60, 5 * 2 ** i)
+                retry_after = float(r.headers.get("Retry-After") or 0)
+                if retry_after > BUDGET_EXHAUSTED_S:
+                    # The daily budget is gone. Stop asking rather than sleeping
+                    # for hours; the caller records the shortfall in its report.
+                    with self._lock:
+                        self.budget_exhausted = True
+                    return None
+                wait = min(MAX_BACKOFF_S, retry_after or 5 * 2 ** i)
                 with self._lock:                 # make every thread back off together
                     self.backoff_until = max(getattr(self, "backoff_until", 0.0),
                                              time.monotonic() + wait)
@@ -216,6 +231,8 @@ class OpenAlexCache:
         batches = [clean[i:i + chunk] for i in range(0, len(clean), chunk)]
         it = progress(batches) if progress else batches
         for batch in it:
+            if self.budget_exhausted:
+                break
             self._wait_for_backoff()
             params = {"filter": "doi:" + "|".join(batch), "per_page": len(batch),
                       "select": SELECT}
@@ -224,9 +241,12 @@ class OpenAlexCache:
             try:
                 r = requests.get(OPENALEX, timeout=60, headers=self.headers, params=params)
                 if r.status_code == 429:
-                    wait = float(r.headers.get("Retry-After") or 30)
+                    retry_after = float(r.headers.get("Retry-After") or 30)
+                    if retry_after > BUDGET_EXHAUSTED_S:
+                        self.budget_exhausted = True
+                        break
                     with self._lock:
-                        self.backoff_until = time.monotonic() + min(wait, 120)
+                        self.backoff_until = time.monotonic() + min(retry_after, MAX_BACKOFF_S)
                     continue
                 if not r.ok:
                     continue

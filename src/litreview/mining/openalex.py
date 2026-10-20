@@ -228,4 +228,38 @@ def verify_reference(title: str, cache: OpenAlexCache | None = None) -> dict:
     for p in semantic_scholar_search(title, limit=3):
         if fuzz.token_sort_ratio(title.lower(), (p["title"] or "").lower()) >= 85:
             return {"query": title, "found": True, "source": "semantic_scholar", **p}
+    for p in arxiv_search_title(title, limit=5):
+        if fuzz.token_sort_ratio(title.lower(), (p["title"] or "").lower()) >= 85:
+            return {"query": title, "found": True, "source": "arxiv", **p}
     return {"query": title, "found": False, "source": None}
+
+
+ARXIV_API = "https://export.arxiv.org/api/query"
+
+
+def arxiv_search_title(title: str, limit: int = 5) -> list[dict]:
+    """Third fallback for reference verification: the arXiv API.
+
+    Some venue-published preprints (ICLR in particular) are indexed badly by
+    OpenAlex, and Semantic Scholar rate-limits aggressively without a key.
+    """
+    import feedparser
+    try:
+        r = requests.get(ARXIV_API, timeout=40, headers={"User-Agent": USER_AGENT},
+                         params={"search_query": f"all:{title[:200]}", "max_results": limit})
+        feed = feedparser.parse(r.text)
+    except Exception:
+        return []
+    out = []
+    for e in feed.entries:
+        t = " ".join(e.title.split())
+        out.append({
+            "openalex_id": None,
+            "arxiv_id": e.id.split("/abs/")[-1].split("v")[0],
+            "title": t, "abstract": " ".join(e.summary.split()),
+            "year": int(e.published[:4]) if getattr(e, "published", "") else None,
+            "venue": "arXiv preprint", "doi": getattr(e, "arxiv_doi", None),
+            "authors": [a.get("name") for a in getattr(e, "authors", [])],
+            "cited_by_count": None, "match_score": None,
+        })
+    return out

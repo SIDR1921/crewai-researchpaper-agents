@@ -21,7 +21,7 @@ import requests
 
 from ..config import paths
 
-ARXIV_API = "http://export.arxiv.org/api/query"
+ARXIV_API = "https://export.arxiv.org/api/query"
 EPRINT = "https://arxiv.org/e-print/{}"
 DELAY = 3.1
 KEEP_EXT = (".tex", ".bbl", ".bib", ".bst")

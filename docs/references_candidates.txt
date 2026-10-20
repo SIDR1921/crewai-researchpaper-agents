@@ -1,0 +1,75 @@
+# Candidate references for Chapter 2. One title per line; "| group" selects the
+# reference-list group in the report. Verified by scripts/verify_references.py --
+# anything not confirmed by OpenAlex or Semantic Scholar is never cited.
+
+# --- multi-document and scientific summarisation, related-work generation ---
+Multi-XScience: A Large-scale Dataset for Extreme Multi-document Summarization of Scientific Articles
+Get To The Point: Summarization with Pointer-Generator Networks
+BART: Denoising Sequence-to-Sequence Pre-training for Natural Language Generation, Translation, and Comprehension
+PEGASUS: Pre-training with Extracted Gap-sentences for Abstractive Summarization
+A Discourse-Aware Attention Model for Abstractive Summarization of Long Documents
+Don't Give Me the Details, Just the Summary! Topic-Aware Convolutional Neural Networks for Extreme Summarization
+Automatic Related Work Section Generation: Experiments in Scientific Document Abstracting
+Neural Related Work Summarization with a Joint Context-driven Attention Mechanism
+Automatic Generation of Citation Texts in Scholarly Papers: A Pilot Study
+Explaining Relationships Between Scientific Documents
+S2ORC: The Semantic Scholar Open Research Corpus
+Benchmarking Large Language Models for News Summarization
+
+# --- citation intent / function classification ---
+Structural Scaffolds for Citation Intent Classification in Scientific Publications
+Measuring the Evolution of a Scientific Field through Citation Frames
+SciBERT: A Pretrained Language Model for Scientific Text
+Identifying the Citation Contexts for Scientific Publications
+Context-Enhanced Citation Sentiment Detection
+
+# --- faithfulness and hallucination evaluation ---
+On Faithfulness and Factuality in Abstractive Summarization
+Asking and Answering Questions to Evaluate the Factual Consistency of Summaries
+SummaC: Re-Visiting NLI-based Models for Inconsistency Detection in Summarization
+Evaluating the Factual Consistency of Abstractive Text Summarization
+Annotating and Modeling Fine-grained Factuality in Summarization
+SummEval: Re-evaluating Summarization Evaluation
+BERTScore: Evaluating Text Generation with BERT
+Survey of Hallucination in Natural Language Generation
+FEVER: a Large-scale Dataset for Fact Extraction and VERification
+Fact or Fiction: Verifying Scientific Claims
+DeBERTa: Decoding-enhanced BERT with Disentangled Attention
+
+# --- LLM agents and multi-agent frameworks ---
+CAMEL: Communicative Agents for "Mind" Exploration of Large Language Model Society
+Generative Agents: Interactive Simulacra of Human Behavior
+Self-Refine: Iterative Refinement with Self-Feedback
+Reflexion: Language Agents with Verbal Reinforcement Learning
+Toolformer: Language Models Can Teach Themselves to Use Tools
+Chain-of-Thought Prompting Elicits Reasoning in Large Language Models
+
+# --- LLM-assisted literature review and retrieval-augmented generation ---
+Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks
+Dense Passage Retrieval for Open-Domain Question Answering
+PaperQA: Retrieval-Augmented Generative Agent for Scientific Research
+Assisting in Writing Wikipedia-like Articles From Scratch with Large Language Models
+Automating Research Synthesis with Domain-Specific Large Language Model Fine-Tuning
+A Comprehensive Survey of Scientific Large Language Models and Their Applications in Scientific Discovery
+
+# --- parameter-efficient fine-tuning (used by the distilled extractor) ---
+QLoRA: Efficient Finetuning of Quantized LLMs
+Qwen2.5 Technical Report
+
+# --- books / handbooks ---
+# Parked. OpenAlex returns only *reviews* of these textbooks (a 2010 article and a 2009
+# book review), not the books themselves, and Semantic Scholar returns nothing without an
+# API key. A fuzzy title match therefore resolves them to the wrong work, so neither is
+# cited and the template's "Reference / Hand Books" group is left empty, with a note in
+# the report. Do not re-add either without a source that confirms author and publisher.
+#   Speech and Language Processing (Jurafsky & Martin) | book
+#   Introduction to Information Retrieval (Manning, Raghavan & Schutze) | book
+
+# Parked: OpenAlex, Semantic Scholar and the arXiv API all failed to confirm these
+# on 2026-10-20, so they are NOT cited anywhere in the report. They are listed here
+# so the omission is a recorded decision rather than an oversight. Re-run
+# scripts/verify_references.py later; if a source confirms one, move it back above.
+#   LoRA: Low-Rank Adaptation of Large Language Models
+#   ReAct: Synergizing Reasoning and Acting in Language Models
+#   AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation
+#   Citation Function and Polarity Classification: A Survey

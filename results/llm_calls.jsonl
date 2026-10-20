@@ -1,0 +1,1 @@
+{"ts": 1792519582.3594182, "tag": "stage_x", "model": "llama3.2:latest", "source": "crewai", "call_type": "LLMCallType.LLM_CALL", "ok": true, "prompt_tokens": 31, "completion_tokens": 2, "total_tokens": 33, "latency_s": 1.295, "cost_usd": 0.0}

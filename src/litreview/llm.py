@@ -33,12 +33,20 @@ _LOG_PATH: Path | None = None
 _TAG_STACK: list[str] = []
 
 
+def _current_tag() -> str:
+    return _TAG_STACK[-1] if _TAG_STACK else "untagged"
+
+
 # ------------------------------------------------------------------ usage log
 
 def _usage_of(response: Any) -> tuple[int, int]:
+    if response is None:
+        return 0, 0
     usage = getattr(response, "usage", None)
     if usage is None and isinstance(response, dict):
         usage = response.get("usage")
+    if usage is None and (isinstance(response, dict) or hasattr(response, "prompt_tokens")):
+        usage = response
     if usage is None:
         return 0, 0
     get = usage.get if isinstance(usage, dict) else lambda k, d=0: getattr(usage, k, d)
@@ -53,8 +61,11 @@ def _cost_of(response: Any, model: str, n_in: int, n_out: int) -> float:
             return float(c)
     except Exception:
         pass
-    for preset in __import__("litreview.config", fromlist=["PROVIDERS"]).PROVIDERS.values():
-        if model.startswith(preset["model"].split("/")[0] + "/"):
+    from .config import PROVIDERS
+    bare = model.split("/")[-1]
+    for name, preset in PROVIDERS.items():
+        known = {preset["model"], preset["small_model"]}
+        if model.startswith(name + "/") or bare in {k.split("/")[-1] for k in known}:
             return (n_in * preset["price_in"] + n_out * preset["price_out"]) / 1e6
     return 0.0
 
@@ -69,12 +80,14 @@ def _append(row: dict) -> None:
 
 
 def _on_success(kwargs, response, start_time, end_time):  # pragma: no cover - callback
+    """LiteLLM callback, kept for any direct ``litellm.completion`` use."""
     model = kwargs.get("model", "?")
     n_in, n_out = _usage_of(response)
     _append({
         "ts": time.time(),
-        "tag": _TAG_STACK[-1] if _TAG_STACK else "untagged",
+        "tag": _current_tag(),
         "model": model,
+        "source": "litellm",
         "ok": True,
         "prompt_tokens": n_in,
         "completion_tokens": n_out,
@@ -88,8 +101,9 @@ def _on_success(kwargs, response, start_time, end_time):  # pragma: no cover - c
 def _on_failure(kwargs, response, start_time, end_time):  # pragma: no cover - callback
     _append({
         "ts": time.time(),
-        "tag": _TAG_STACK[-1] if _TAG_STACK else "untagged",
+        "tag": _current_tag(),
         "model": kwargs.get("model", "?"),
+        "source": "litellm",
         "ok": False,
         "error": str(response)[:400],
         "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0,
@@ -97,16 +111,118 @@ def _on_failure(kwargs, response, start_time, end_time):  # pragma: no cover - c
     })
 
 
+#: call_id -> {"t0", "tag"}. The tag is captured when the call *starts*, because
+#: the bus delivers events on a worker thread: by the time the completion event
+#: arrives the caller may already have left its ``tagged`` block, and the row
+#: would be filed under the wrong stage.
+_CALL_STARTS: dict[str, dict] = {}
+
+
+def _install_crewai_listener() -> bool:
+    """Log from CrewAI's event bus.
+
+    CrewAI 1.x reaches several providers through native clients that never call
+    ``litellm.completion``, so a LiteLLM callback alone silently records nothing.
+    Its event bus fires for every path, which is why the usage log is built from
+    it rather than from LiteLLM. ``litellm`` callbacks stay installed only for the
+    rare direct call, and rows carry a ``source`` field so the two can be told
+    apart if they ever both fire.
+    """
+    try:
+        from crewai.events import crewai_event_bus
+        from crewai.events.types.llm_events import (LLMCallCompletedEvent, LLMCallFailedEvent,
+                                                    LLMCallStartedEvent)
+    except Exception:  # pragma: no cover - crewai optional at import time
+        return False
+
+    @crewai_event_bus.on(LLMCallStartedEvent)
+    def _started(source, event):  # noqa: ANN001
+        cid = getattr(event, "call_id", None)
+        if cid:
+            _CALL_STARTS[str(cid)] = {"t0": time.time(), "tag": _current_tag()}
+
+    @crewai_event_bus.on(LLMCallCompletedEvent)
+    def _completed(source, event):  # noqa: ANN001
+        cid = str(getattr(event, "call_id", "") or "")
+        started = _CALL_STARTS.pop(cid, None) or {}
+        t0 = started.get("t0")
+        model = str(getattr(event, "model", "?") or "?")
+        n_in, n_out = _usage_of(event)
+        if (n_in, n_out) == (0, 0):
+            n_in, n_out = _usage_of(getattr(event, "usage", None))
+        if (n_in, n_out) == (0, 0):
+            n_in, n_out = _estimate_tokens(getattr(event, "messages", None),
+                                           getattr(event, "response", None), model)
+        _append({
+            "ts": time.time(),
+            "tag": started.get("tag") or _current_tag(),
+            "model": model,
+            "source": "crewai",
+            "call_type": str(getattr(event, "call_type", "") or ""),
+            "ok": True,
+            "prompt_tokens": n_in,
+            "completion_tokens": n_out,
+            "total_tokens": n_in + n_out,
+            "latency_s": round(time.time() - t0, 3) if t0 else None,
+            "cost_usd": round(_cost_of(None, model, n_in, n_out), 8),
+        })
+
+    @crewai_event_bus.on(LLMCallFailedEvent)
+    def _failed(source, event):  # noqa: ANN001
+        cid = str(getattr(event, "call_id", "") or "")
+        started = _CALL_STARTS.pop(cid, None) or {}
+        t0 = started.get("t0")
+        _append({
+            "ts": time.time(),
+            "tag": started.get("tag") or _current_tag(),
+            "model": str(getattr(event, "model", "?") or "?"),
+            "source": "crewai",
+            "ok": False,
+            "error": str(getattr(event, "error", ""))[:400],
+            "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0,
+            "latency_s": round(time.time() - t0, 3) if t0 else None,
+            "cost_usd": 0.0,
+        })
+
+    return True
+
+
+def _estimate_tokens(messages, response, model: str) -> tuple[int, int]:
+    """Fallback when a provider reports no usage: count with LiteLLM's tokenizer.
+
+    Estimated rows are still honest about being tokens, and the alternative --
+    recording zero -- would understate the cost of exactly the providers that are
+    hardest to budget for.
+    """
+    try:
+        import litellm
+        n_in = litellm.token_counter(model=model, messages=messages or [])
+        n_out = litellm.token_counter(model=model, text=str(response or ""))
+        return int(n_in), int(n_out)
+    except Exception:
+        text_in = " ".join(str(m.get("content", "")) for m in (messages or [])
+                           if isinstance(m, dict))
+        return len(text_in) // 4, len(str(response or "")) // 4
+
+
 def install_call_logger(path: str | Path | None = None) -> Path:
-    """Install the LiteLLM callbacks once. Returns the log path."""
+    """Install the usage logger once. Returns the log path.
+
+    The log is built from CrewAI's event bus rather than from a LiteLLM callback,
+    because CrewAI 1.x reaches several providers through native clients that never
+    touch LiteLLM; a callback-only logger records nothing for those and the cost
+    table in the report would quietly read zero.
+    """
     global _INSTALLED, _LOG_PATH
     _LOG_PATH = Path(path) if path else paths().results / "llm_calls.jsonl"
     if not _INSTALLED:
-        import litellm
-        litellm.success_callback = list(getattr(litellm, "success_callback", []) or []) + [_on_success]
-        litellm.failure_callback = list(getattr(litellm, "failure_callback", []) or []) + [_on_failure]
-        litellm.drop_params = True            # providers differ on supported params
-        litellm.suppress_debug_info = True
+        try:
+            import litellm
+            litellm.drop_params = True        # providers differ on supported params
+            litellm.suppress_debug_info = True
+        except ImportError:
+            pass
+        _install_crewai_listener()
         _INSTALLED = True
     return _LOG_PATH
 

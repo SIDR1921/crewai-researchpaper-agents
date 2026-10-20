@@ -109,6 +109,9 @@ PROVIDERS: dict[str, dict] = {
         # call is clamped below it and long outputs have to be asked for in
         # smaller pieces.
         "max_output_per_call": 900,
+        # The ceiling that actually ends a day's work. Spending it on one stage
+        # leaves nothing for the rest, so budget_report() shows the split.
+        "tpd": 200_000,
         "price_in": 0.0,
         "price_out": 0.0,
     },

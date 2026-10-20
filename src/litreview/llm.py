@@ -368,6 +368,49 @@ def get_llm(size: str = "large", settings: Settings = SETTINGS, **kw):
 
 
 RETRYABLE = re.compile(r"429|rate.?limit|overload|timeout|timed out|50[0-9]|temporarily", re.I)
+#: A provider that has run out of *daily* budget says so distinctly. Retrying
+#: that with exponential backoff burns minutes for nothing.
+DAILY_LIMIT = re.compile(r"per day|\bTPD\b|\bRPD\b|daily (?:budget|limit|quota)", re.I)
+RETRY_AFTER = re.compile(r"try again in\s*(?:(\d+)m)?\s*([\d.]+)s", re.I)
+
+
+class DailyBudgetExhausted(RuntimeError):
+    """The provider's per-day allowance is gone; waiting will not help soon."""
+
+
+def _retry_after_seconds(msg: str) -> float | None:
+    m = RETRY_AFTER.search(msg or "")
+    if not m:
+        return None
+    return float(m.group(1) or 0) * 60 + float(m.group(2) or 0)
+
+
+def daily_tokens(settings: Settings = SETTINGS, path: str | Path | None = None) -> dict:
+    """Tokens spent on this provider in the last 24 hours, from the call log.
+
+    Each stage runs as its own process, so the only shared record of the day's
+    spend is the log itself. Reading it back is what lets a run say "this will
+    not fit" before it starts rather than after it fails.
+    """
+    p = Path(path) if path else (_LOG_PATH or paths().results / "llm_calls.jsonl")
+    cutoff = time.time() - 86_400
+    used, by_tag = 0, {}
+    if p.exists():
+        for line in p.open():
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if r.get("ts", 0) < cutoff or settings.provider not in str(r.get("model", "")):
+                continue
+            n = r.get("total_tokens") or 0
+            used += n
+            by_tag[r.get("tag", "?")] = by_tag.get(r.get("tag", "?"), 0) + n
+    cap = settings.preset.get("tpd")
+    return {"provider": settings.provider, "used": used, "limit": cap,
+            "remaining": (cap - used) if cap else None,
+            "pct": round(100 * used / cap, 1) if cap else None,
+            "by_tag": dict(sorted(by_tag.items(), key=lambda kv: -kv[1]))}
 
 
 def complete(
@@ -391,9 +434,17 @@ def complete(
             return llm.call(messages)
         except Exception as e:  # noqa: BLE001
             last = e
-            if i == attempts - 1 or not RETRYABLE.search(str(e)):
+            msg = str(e)
+            if DAILY_LIMIT.search(msg):
+                wait = _retry_after_seconds(msg)
+                raise DailyBudgetExhausted(
+                    f"{settings.provider} daily token budget is spent"
+                    + (f"; it frees up in about {wait / 60:.0f} min" if wait else "")
+                    + ". Switch provider (LITREVIEW_PROVIDER=ollama) or wait.") from e
+            if i == attempts - 1 or not RETRYABLE.search(msg):
                 raise
-            time.sleep(min(60, 2 ** i * 2) + random.uniform(0, 1.5))
+            wait = _retry_after_seconds(msg)
+            time.sleep(min(90, wait or 2 ** i * 2) + random.uniform(0, 1.5))
     raise RuntimeError(f"LLM call failed after {attempts} attempts") from last
 
 

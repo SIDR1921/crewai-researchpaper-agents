@@ -304,9 +304,13 @@ def review(run_id: str | None = None) -> dict | None:
 # ----------------------------------------------------------------------- usage
 
 def usage() -> dict:
-    from .llm import usage_summary
+    from .llm import daily_tokens, usage_summary
     P = paths()
     u = usage_summary(P.results / "llm_calls.jsonl")
+    try:
+        u["daily"] = daily_tokens(path=P.results / "llm_calls.jsonl")
+    except Exception:
+        u["daily"] = {}
     rows = _jsonl(P.results / "llm_calls.jsonl")
     recent = rows[-40:]
     return {**u, "recent": [{"tag": r.get("tag"), "model": r.get("model"),

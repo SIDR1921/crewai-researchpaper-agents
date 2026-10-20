@@ -266,6 +266,18 @@ LOADERS.cost = async () => {
       <div class="k">${esc(k)}</div><div class="v">${nf(v)}</div>
       <div class="note">${esc(note)}</div></div>`).join("");
 
+  const dy = u.daily || {};
+  if (dy.limit) {
+    const over = dy.used > dy.limit;
+    $("#usage-stats").insertAdjacentHTML("beforeend", `
+      <div class="stat ${over ? "" : "accent"}" style="${over ? "border-color:rgba(214,96,77,.5)" : ""}">
+        <div class="k">Daily budget (${esc(dy.provider)})</div>
+        <div class="v" style="${over ? "color:var(--red)" : ""}">${dy.pct}%</div>
+        <div class="note">${nf(dy.used)} of ${nf(dy.limit)} tokens in 24h${
+          over ? " — spent" : ""}</div>
+      </div>`);
+  }
+
   const tags = Object.entries(u.by_tag || {})
     .filter(([, v]) => v.total_tokens).sort((a, b) => b[1].total_tokens - a[1].total_tokens);
   const max = Math.max(...tags.map(([, v]) => v.total_tokens), 1);

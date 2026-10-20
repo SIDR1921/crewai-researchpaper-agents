@@ -111,11 +111,46 @@ resumes where it stopped.
 Stage 6 (QLoRA distillation) needs CUDA for 4-bit quantisation and is a Colab-T4 job;
 see `notebooks/05_distill_extractor_qlora.ipynb`.
 
-The demo UI:
+## The console
+
+A local web app for the project — no build step, no extra packages.
+
+```bash
+.venv/bin/python app/server.py       # then open http://127.0.0.1:8000
+```
+
+Six views: the pipeline and what each stage produced; the mined benchmark, where
+opening a paper shows the human related-work section a system must regenerate
+beside the abstracts it is given; the citation relations with real labelled
+examples; **the grounded review, where clicking a sentence shows the passage it
+rests on and the entailment score behind it**; cost and token usage per stage;
+and a Run tab that starts the pipeline scripts.
+
+The fastest way to see what this project does:
+
+```bash
+.venv/bin/python scripts/run_demo.py        # regenerate one benchmark paper's related work
+.venv/bin/python app/server.py              # then open the Grounded review tab
+```
+
+That takes a real paper, hides its related-work section, gives the crew only the
+abstracts that section cites, and puts the two side by side with every generated
+sentence carrying its evidence. See [docs/CONSOLE.md](docs/CONSOLE.md).
+
+### From Claude instead
+
+`app/mcp_server.py` exposes the same views to Claude Desktop as MCP tools, so you
+can ask about the project rather than read a dashboard. Read-only — it cannot
+start runs or spend API budget. See [docs/MCP.md](docs/MCP.md).
+
+### The older Streamlit demo
 
 ```bash
 .venv/bin/streamlit run app/streamlit_app.py
 ```
+
+Drives the Flow one step at a time, so the human approval checkpoint is a real
+button. Superseded by the console above for everything except that.
 
 ## Running it on Colab
 

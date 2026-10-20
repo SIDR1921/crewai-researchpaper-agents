@@ -103,7 +103,12 @@ PROVIDERS: dict[str, dict] = {
         "api_key_env": "GROQ_API_KEY",
         "rpm": 20,
         "tpm": 7400,        # account limit is 8000/min; leave headroom for retries
-        "otpm": 620,        # separate, far tighter completion-token limit: 1000/min
+        "otpm": 950,        # separate, far tighter completion-token limit: 1000/min
+        # A request that asks for more completion tokens than the per-minute
+        # output ceiling can never be served, however long you wait, so every
+        # call is clamped below it and long outputs have to be asked for in
+        # smaller pieces.
+        "max_output_per_call": 900,
         "price_in": 0.0,
         "price_out": 0.0,
     },

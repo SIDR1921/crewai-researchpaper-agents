@@ -107,7 +107,7 @@ def write_review(topic: str, records: Sequence[dict],
                  contradictions: Sequence[dict] | None = None,
                  gaps: Sequence[dict] | None = None,
                  relations: Sequence[dict] | None = None,
-                 n_sent: int = 10, n_sent_max: int = 18,
+                 n_sent: int = 9, n_sent_max: int = 13,
                  only_supported: bool = True) -> tuple[Review, dict[str, str]]:
     """One Writer pass. Returns the review and the ``claim_id -> evidence`` map."""
     block, evidence = claims_block(records, verdicts, only_supported=only_supported)
@@ -116,7 +116,8 @@ def write_review(topic: str, records: Sequence[dict],
         extra_block=_extra_block(contradictions, gaps, relations),
         n_sent=n_sent, n_sent_max=n_sent_max)
     with tagged("write_review"):
-        data = complete_json(prompt, system=WRITER_SYSTEM, est_tokens=len(prompt) // 3 + 1200)
+        data = complete_json(prompt, system=WRITER_SYSTEM,
+                             est_tokens=len(prompt) // 3 + 1200, est_output=880)
     sents = []
     for s in (data.get("sentences") if isinstance(data, dict) else data) or []:
         if not isinstance(s, dict) or not (s.get("text") or "").strip():
@@ -152,7 +153,8 @@ def revise_review(review: Review, bad: Sequence[dict], records: Sequence[dict],
         f"\"{(b.get('best_evidence') or 'none')[:200]}\")" for b in bad)
     with tagged("revise_review"):
         data = complete_json(REVISE_PROMPT.format(bad=bad_block, claims_block=block),
-                             system=WRITER_SYSTEM, est_tokens=len(block) // 3 + 1500)
+                             system=WRITER_SYSTEM, est_tokens=len(block) // 3 + 1500,
+                             est_output=880)
     sents = []
     for s in (data.get("sentences") if isinstance(data, dict) else data) or []:
         if isinstance(s, dict) and (s.get("text") or "").strip():
@@ -201,8 +203,8 @@ Requirements:
 Return the section text only."""
 
 
-def single_call_review(topic: str, cited: Sequence[dict], n_sent: int = 10,
-                       n_sent_max: int = 18, max_chars: int = 14_000) -> Review:
+def single_call_review(topic: str, cited: Sequence[dict], n_sent: int = 9,
+                       n_sent_max: int = 13, max_chars: int = 14_000) -> Review:
     """System S1: one well-prompted LLM call, same inputs, no agents or verification."""
     lines, used = [], 0
     for c in cited:
@@ -217,7 +219,8 @@ def single_call_review(topic: str, cited: Sequence[dict], n_sent: int = 10,
                               n_sent_max=n_sent_max,
                               id_example=(cited[0].get("cite_key") if cited else "paper_id"))
     with tagged("s1_single_call"):
-        text = complete(prompt, system=S1_SYSTEM, est_tokens=used // 3 + 1200)
+        text = complete(prompt, system=S1_SYSTEM, est_tokens=used // 3 + 1200,
+                        est_output=880)
     return Review(topic=topic, sentences=[ReviewSentence(text=s, cited_paper_ids=cited_ids(s))
                                           for s in split_sentences(text)],
                   markdown=text.strip() + "\n")

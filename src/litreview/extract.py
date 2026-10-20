@@ -61,7 +61,7 @@ Return ONLY JSON of this exact shape:
 }}
 
 Rules:
-- Emit between 3 and 6 claims. Prefer the paper's main results and comparisons.
+- Emit between 3 and 5 claims. Prefer the paper's main results and comparisons.
 - `passage` must be a character-for-character copy of a span of the text below.
   Do not fix typos, do not shorten with ellipses, do not join two distant spans.
 - Only list datasets and metrics that are actually named in the text.
@@ -177,7 +177,7 @@ class ApiExtractor:
         try:
             with tagged(self.tag):
                 data = complete_json(build_prompt(paper, text), system=SYSTEM, size=self.size,
-                                     est_tokens=len(text) // 3 + 900)
+                                     est_tokens=len(text) // 3 + 900, est_output=850)
             rec = coerce_record(data if isinstance(data, dict) else {}, paper)
             return rec, meta | {"latency_s": round(time.time() - t0, 2), "json_valid": True}
         except (ValueError, ValidationError) as e:

@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en" data-view="overview">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Literature Review Console</title>
+<link rel="stylesheet" href="/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📚</text></svg>">
+</head>
+<body>
+
+<aside class="rail">
+  <div class="brand">
+    <div class="brand-mark">LR</div>
+    <div class="brand-text">
+      <strong>Literature Review</strong>
+      <span>grounded generation console</span>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <button class="nav-item is-active" data-go="overview"><i data-ico="grid"></i>Overview</button>
+    <button class="nav-item" data-go="benchmark"><i data-ico="book"></i>Benchmark</button>
+    <button class="nav-item" data-go="relations"><i data-ico="link"></i>Relations</button>
+    <button class="nav-item" data-go="review"><i data-ico="check"></i>Grounded review</button>
+    <button class="nav-item" data-go="cost"><i data-ico="bolt"></i>Cost &amp; usage</button>
+    <button class="nav-item" data-go="run"><i data-ico="play"></i>Run</button>
+  </nav>
+
+  <div class="rail-foot">
+    <div class="provider" id="provider">
+      <span class="dot"></span><span id="provider-text">connecting…</span>
+    </div>
+    <a class="ghost-link" href="/api/status" target="_blank">raw API ↗</a>
+  </div>
+</aside>
+
+<main class="stage">
+
+  <!-- ───────────────────────────── overview ───────────────────────────── -->
+  <section class="view" data-view="overview">
+    <header class="view-head">
+      <div>
+        <h1>Pipeline</h1>
+        <p class="sub">Every figure below is read from a results file the pipeline wrote.
+           A stage that has not run says so rather than showing an estimate.</p>
+      </div>
+      <div class="progress-chip"><span id="stage-progress">—</span> stages complete</div>
+    </header>
+
+    <ol class="rail-stages" id="stages"></ol>
+
+    <h2 class="section-title">Corpus at a glance</h2>
+    <div class="stat-grid" id="overview-stats"></div>
+
+    <div class="split">
+      <div class="panel">
+        <h3>Mining yield</h3>
+        <p class="panel-sub">How many papers survive each step.</p>
+        <div id="yield-bars" class="bars"></div>
+      </div>
+      <div class="panel">
+        <h3>What this system does</h3>
+        <ol class="steps">
+          <li><b>Collects</b> a corpus from a topic or seed papers.</li>
+          <li><b>Extracts</b> claims that must quote their evidence verbatim.</li>
+          <li><b>Verifies</b> each claim twice — the quote really occurs, and the
+              claim actually follows from it.</li>
+          <li><b>Maps</b> where papers agree and disagree, and where the gaps are.</li>
+          <li><b>Writes</b> a review in which every sentence names the claims
+              behind it, then checks each sentence and revises what fails.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────── benchmark ──────────────────────────── -->
+  <section class="view" data-view="benchmark">
+    <header class="view-head">
+      <div>
+        <h1>Benchmark</h1>
+        <p class="sub">Mined from real papers: each example hides a human-written
+           related-work section and supplies only the abstracts it cites.
+           That is the task every system is scored on.</p>
+      </div>
+      <div class="seg" id="split-filter">
+        <button class="is-active" data-split="">All</button>
+        <button data-split="train">Train</button>
+        <button data-split="test">Test</button>
+      </div>
+    </header>
+    <div class="table-wrap">
+      <table class="grid" id="benchmark-table">
+        <colgroup><col class="c-paper"><col class="c-split"><col class="c-date">
+          <col class="c-sec"><col class="c-n"><col class="c-n"><col class="c-n"></colgroup>
+        <thead><tr><th>Paper</th><th>Split</th><th>Published</th><th>Section</th>
+          <th class="num">Words</th><th class="num">Cited</th><th class="num">Coverage</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="example-detail" class="detail" hidden></div>
+  </section>
+
+  <!-- ───────────────────────────── relations ──────────────────────────── -->
+  <section class="view" data-view="relations">
+    <header class="view-head">
+      <div>
+        <h1>Citation relations</h1>
+        <p class="sub">Seven classes. The one that matters most is the split between
+           <em>compares-against</em> (a measurement) and <em>contrasts</em> (a
+           disagreement) — only the second is evidence that two papers conflict.</p>
+      </div>
+      <div class="progress-chip"><span id="label-count">—</span> contexts labelled</div>
+    </header>
+    <div id="relation-cards" class="relation-grid"></div>
+  </section>
+
+  <!-- ─────────────────────────── grounded review ──────────────────────── -->
+  <section class="view" data-view="review">
+    <header class="view-head">
+      <div>
+        <h1>Grounded review</h1>
+        <p class="sub">Click any sentence to see the passage it rests on and the
+           entailment score the Verifier gave it. This is the whole point of the
+           system: nothing here is unattributable.</p>
+      </div>
+      <div id="faith-chip" class="progress-chip">—</div>
+    </header>
+    <div class="seg" id="review-mode" style="margin-bottom:13px">
+      <button class="is-active" data-mode="generated">Generated</button>
+      <button data-mode="compare">Side by side with the human section</button>
+    </div>
+    <div class="review-layout">
+      <article class="panel review-body" id="review-body">
+        <div class="empty" id="review-empty">
+          <h3>No review yet</h3>
+          <p>Run the Flow on a topic and it will appear here, sentence by sentence,
+             with its evidence attached.</p>
+          <button class="btn" data-go="run">Go to Run →</button>
+        </div>
+      </article>
+      <article class="panel review-body" id="human-body" hidden></article>
+      <aside class="panel evidence" id="evidence">
+        <h3>Evidence</h3>
+        <p class="panel-sub">Select a sentence on the left.</p>
+      </aside>
+    </div>
+    <div class="split" id="review-extras" hidden>
+      <div class="panel"><h3>Contradictions</h3><div id="contradictions"></div></div>
+      <div class="panel"><h3>Candidate gaps</h3><div id="gaps"></div></div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────── cost ───────────────────────────────── -->
+  <section class="view" data-view="cost">
+    <header class="view-head">
+      <div>
+        <h1>Cost &amp; usage</h1>
+        <p class="sub">Every model call in the project is logged — tokens, latency
+           and cost — so the price of the agent pipeline sits beside its quality.</p>
+      </div>
+    </header>
+    <div class="stat-grid" id="usage-stats"></div>
+    <div class="panel">
+      <h3>By pipeline stage</h3>
+      <div id="usage-bars" class="bars"></div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────── run ────────────────────────────────── -->
+  <section class="view" data-view="run">
+    <header class="view-head">
+      <div>
+        <h1>Run</h1>
+        <p class="sub">Starts the same scripts the command line runs. Output streams
+           below; everything is cached, so a run you stop resumes next time.</p>
+      </div>
+    </header>
+    <div class="split">
+      <div class="panel" id="commands"></div>
+      <div class="panel">
+        <h3>Output <span class="run-state" id="run-state"></span></h3>
+        <pre class="log" id="log">Nothing running.</pre>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>

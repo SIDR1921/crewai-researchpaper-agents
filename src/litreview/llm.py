@@ -333,19 +333,29 @@ _LLM_CACHE: dict[tuple, Any] = {}
 
 
 def get_llm(size: str = "large", settings: Settings = SETTINGS, **kw):
-    """A configured :class:`crewai.LLM`. ``size`` is ``large`` or ``small``."""
+    """A configured :class:`crewai.LLM`. ``size`` is ``large`` or ``small``.
+
+    ``max_tokens`` is clamped to the provider's per-minute output ceiling when it
+    has one: providers meter that budget against what a request *asks* for, so a
+    call that asks for more than a whole minute's worth is refused every time it
+    is tried, however long the caller waits.
+    """
     from crewai import LLM
 
     install_call_logger()
     model = settings.model if size == "large" else settings.small_model
-    key = (model, settings.temperature, settings.max_tokens, tuple(sorted(kw.items())))
+    cap = settings.preset.get("max_output_per_call")
+    want = kw.pop("max_tokens", settings.max_tokens)
+    max_tokens = min(want, cap) if cap else want
+
+    key = (model, settings.temperature, max_tokens, tuple(sorted(kw.items())))
     if key in _LLM_CACHE:
         return _LLM_CACHE[key]
 
     opts: dict[str, Any] = {
         "model": model,
         "temperature": settings.temperature,
-        "max_tokens": settings.max_tokens,
+        "max_tokens": max_tokens,
         **kw,
     }
     if settings.provider == "ollama":

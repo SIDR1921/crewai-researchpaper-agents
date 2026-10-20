@@ -90,12 +90,19 @@ def paths(root: str | Path | None = None) -> Paths:
 #: for the cost column in the usage log; free tiers are recorded as 0.0 but the
 #: token counts are still logged so a paid-tier cost can be computed later.
 PROVIDERS: dict[str, dict] = {
+    # Checked live against https://api.groq.com/openai/v1/models on 2026-10-20.
+    # The Llama models the free tier used to serve are gone; the chat-capable
+    # models now are qwen3.8-27b and the two gpt-oss sizes. The gpt-oss models are
+    # reasoning models that spend their completion budget on hidden reasoning
+    # tokens before emitting anything, which is expensive under an 8k-token/minute
+    # cap, so the default is Qwen. Limits below are read from this account's own
+    # x-ratelimit-* response headers, not from documentation.
     "groq": {
-        "model": "groq/llama-3.3-70b-versatile",
-        "small_model": "groq/llama-3.1-8b-instant",
+        "model": "groq/qwen/qwen3.8-27b",
+        "small_model": "groq/openai/gpt-oss-20b",
         "api_key_env": "GROQ_API_KEY",
-        "rpm": 25,          # free tier is ~30 rpm; stay under it
-        "tpm": 7000,
+        "rpm": 20,
+        "tpm": 6500,        # account limit is 8000/min; leave headroom for retries
         "price_in": 0.0,
         "price_out": 0.0,
     },

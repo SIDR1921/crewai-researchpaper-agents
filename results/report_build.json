@@ -1,0 +1,35 @@
+{
+  "out": "/Users/siddharth1921/Claude/litreview/report/LitReview_Report.docx",
+  "figures": 3,
+  "tables": 2,
+  "references": 40,
+  "unresolved_citations": [],
+  "missing_figures": [],
+  "results_lookups_ok": 1,
+  "results_lookups_missing": [
+    "eval_arxiv.json (file absent)",
+    "stage1_yield.json (file absent)",
+    "stage2_benchmark.json (file absent)",
+    "stage2_gold_agreement.json (file absent)",
+    "stage2_labelling.json (file absent)",
+    "stage3_verify_train_api.json (file absent)"
+  ],
+  "notes": [
+    "Cover page: 2 teammate name/reg-no slots were left in place as <STUDENT NAME> / <reg no.> placeholders. Fill or delete them.",
+    "Cover page: <Section> is left as a placeholder \u2014 set your section.",
+    "Cover page: the template said \u201cIV SEMESTER\u201d. It is now the placeholder <SEMESTER> \u2014 replace it with your current semester.",
+    "Cover page: the template said \u201cApril 2026\u201d; set to \u201cOctober 2026\u201d (the month this report was generated). Change it if your submission month differs.",
+    "Abstract length: 177 words.",
+    "Chapter 4: Stage 1 mining not reported \u2014 results/stage1_yield.json is absent.",
+    "Chapter 4: Stage 2 classification not reported \u2014 results/stage2_benchmark.json is absent, so neither the LLM agreement nor the fine-tuned classifier can be reported.",
+    "Chapter 4: Verifier calibration not reported \u2014 results/verifier_calibration.json is absent, so the thresholds in use are the hand-chosen defaults rather than fitted values, and the claim verdicts below should be read as uncalibrated.",
+    "Chapter 4: Claim verification not reported \u2014 no results/stage3_verify_*.json file exists.",
+    "Chapter 4: The end-to-end Flow run not reported \u2014 results/flow_summary.json is absent.",
+    "Chapter 4: The S1\u2013S4 comparison not reported \u2014 results/eval_arxiv.json is absent.",
+    "Chapter 4: Stage 6 distillation not reported \u2014 results/stage6_distill.json is absent. 4-bit QLoRA requires bitsandbytes, which is CUDA-only, so this stage is a Colab-T4 job and was not run on the development machine.",
+    "Chapter 4.7: qualitative examples omitted \u2014 no cached generations.",
+    "Section numbering: the template's \u201c5.4 Suggestions for future directions\u201d was corrected to \u201c5.2\u201d.",
+    "References: the \u201cReference / Hand Books\u201d group is empty by decision; add a textbook manually if your department requires one.",
+    "Page numbers in the three front-matter tables are Word PAGEREF fields, filled in by the PDF build. Page numbers below are Word fields. They were filled in when this document was rendered; if you edit the document, select all (Ctrl+A, or Cmd+A on macOS) and press F9 to refresh them."
+  ]
+}

@@ -22,8 +22,9 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
-WORD_UPDATE_HINT = ("Open the document in Word, press Ctrl+A then F9 (on macOS: Cmd+A, then "
-                    "fn+F9) and choose \"Update entire table\" to fill in the page numbers.")
+WORD_UPDATE_HINT = ("Page numbers below are Word fields. They were filled in when this document was "
+                    "rendered; if you edit the document, select all (Ctrl+A, or Cmd+A on macOS) "
+                    "and press F9 to refresh them.")
 
 _BOOKMARK_ID = [1000]
 
@@ -316,13 +317,61 @@ class Counter:
         self.kind = kind
         self.items: list[dict] = []
 
+    @staticmethod
+    def _short(caption: str, limit: int = 120) -> str:
+        """First sentence of a caption, for the list of tables / figures."""
+        first = caption.split(". ")[0].strip().rstrip(".")
+        if len(first) <= limit:
+            return first
+        cut = first[:limit].rsplit(" ", 1)[0]
+        return cut + "\u2026"
+
     def next(self, caption: str, source: str = "", chapter: int | None = None) -> dict:
         n = len(self.items) + 1
         label = f"{self.kind} {n}"
-        item = {"n": n, "label": label, "caption": caption, "source": source,
-                "bookmark": f"_{self.kind.lower()}_{n}", "chapter": chapter}
+        item = {"n": n, "label": label, "caption": caption, "short": self._short(caption),
+                "source": source, "bookmark": f"_{self.kind.lower()}_{n}", "chapter": chapter}
         self.items.append(item)
         return item
 
     def __len__(self) -> int:
         return len(self.items)
+
+
+def set_table_widths(table, widths_in: Sequence[float]) -> None:
+    """Pin a table's column widths.
+
+    Word only honours per-cell widths when autofit is off and the table layout is
+    fixed, which is why both are set here; the template's tables otherwise
+    collapse their merged title column to a few characters wide.
+    """
+    table.autofit = False
+    tbl_pr = table._tbl.tblPr
+    for tag in ("w:tblLayout", "w:tblW"):
+        for el in tbl_pr.findall(qn(tag)):
+            tbl_pr.remove(el)
+    layout = OxmlElement("w:tblLayout")
+    layout.set(qn("w:type"), "fixed")
+    tbl_pr.append(layout)
+    total = OxmlElement("w:tblW")
+    total.set(qn("w:w"), str(int(sum(widths_in) * 1440)))
+    total.set(qn("w:type"), "dxa")
+    tbl_pr.append(total)
+
+    grid = table._tbl.find(qn("w:tblGrid"))
+    if grid is not None:
+        table._tbl.remove(grid)
+    grid = OxmlElement("w:tblGrid")
+    for w in widths_in:
+        col = OxmlElement("w:gridCol")
+        col.set(qn("w:w"), str(int(w * 1440)))
+        grid.append(col)
+    table._tbl.insert(list(table._tbl).index(tbl_pr) + 1, grid)
+
+    for row in table.rows:
+        seen = set()
+        for cell, w in zip(row.cells, widths_in):
+            if id(cell._tc) in seen:        # merged cells repeat in row.cells
+                continue
+            seen.add(id(cell._tc))
+            cell.width = Inches(w)

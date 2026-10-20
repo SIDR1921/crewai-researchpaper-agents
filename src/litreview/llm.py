@@ -274,28 +274,46 @@ class RateLimiter:
     is tuned on that basis.
     """
 
-    def __init__(self, rpm: int, tpm: int) -> None:
+    def __init__(self, rpm: int, tpm: int, otpm: int | None = None) -> None:
         self.rpm, self.tpm = rpm, tpm
+        # Providers meter *output* tokens separately and much more tightly than
+        # total tokens: Groq allows 8,000 total but only 1,000 completion tokens a
+        # minute, so a limiter that tracks totals alone still earns 429s.
+        self.otpm = otpm
         self._reqs: deque[float] = deque()
         self._toks: deque[tuple[float, int]] = deque()
+        self._out: deque[tuple[float, int]] = deque()
         self._lock = threading.Lock()
 
-    def acquire(self, est_tokens: int = 800) -> None:
+    def acquire(self, est_tokens: int = 800, est_output: int | None = None) -> None:
+        est_output = est_output if est_output is not None else max(1, est_tokens // 4)
         while True:
             with self._lock:
                 now = time.monotonic()
-                while self._reqs and now - self._reqs[0] > 60:
-                    self._reqs.popleft()
-                while self._toks and now - self._toks[0][0] > 60:
-                    self._toks.popleft()
+                for q in (self._reqs,):
+                    while q and now - q[0] > 60:
+                        q.popleft()
+                for q in (self._toks, self._out):
+                    while q and now - q[0][0] > 60:
+                        q.popleft()
                 tok_sum = sum(t for _, t in self._toks)
-                if len(self._reqs) < self.rpm and tok_sum + est_tokens <= self.tpm:
+                out_sum = sum(t for _, t in self._out)
+                ok_req = len(self._reqs) < self.rpm
+                ok_tok = tok_sum + est_tokens <= self.tpm
+                ok_out = self.otpm is None or out_sum + est_output <= self.otpm
+                if ok_req and ok_tok and ok_out:
                     self._reqs.append(now)
                     self._toks.append((now, est_tokens))
+                    self._out.append((now, est_output))
                     return
-                waits = [60 - (now - self._reqs[0]) if self._reqs else 0.0,
-                         60 - (now - self._toks[0][0]) if self._toks else 0.0]
-            time.sleep(max(0.25, min(w for w in waits if w > 0) if any(w > 0 for w in waits) else 0.25))
+                waits = []
+                if not ok_req and self._reqs:
+                    waits.append(60 - (now - self._reqs[0]))
+                if not ok_tok and self._toks:
+                    waits.append(60 - (now - self._toks[0][0]))
+                if not ok_out and self._out:
+                    waits.append(60 - (now - self._out[0][0]))
+            time.sleep(max(0.25, min(waits) if waits else 0.25))
 
 
 _LIMITERS: dict[str, RateLimiter] = {}
@@ -303,7 +321,9 @@ _LIMITERS: dict[str, RateLimiter] = {}
 
 def limiter_for(settings: Settings = SETTINGS) -> RateLimiter:
     if settings.provider not in _LIMITERS:
-        _LIMITERS[settings.provider] = RateLimiter(settings.preset["rpm"], settings.preset["tpm"])
+        _LIMITERS[settings.provider] = RateLimiter(settings.preset["rpm"],
+                                                   settings.preset["tpm"],
+                                                   settings.preset.get("otpm"))
     return _LIMITERS[settings.provider]
 
 
@@ -347,6 +367,7 @@ def complete(
     settings: Settings = SETTINGS,
     attempts: int = 5,
     est_tokens: int = 1200,
+    est_output: int | None = None,
     **kw,
 ) -> str:
     """One chat completion with rate limiting and exponential backoff."""
@@ -355,7 +376,7 @@ def complete(
                [{"role": "user", "content": prompt}]
     last: Exception | None = None
     for i in range(attempts):
-        limiter_for(settings).acquire(est_tokens)
+        limiter_for(settings).acquire(est_tokens, est_output)
         try:
             return llm.call(messages)
         except Exception as e:  # noqa: BLE001

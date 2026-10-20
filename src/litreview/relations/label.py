@@ -62,8 +62,8 @@ def _prompt(batch: Sequence[dict]) -> str:
         taxonomy_prompt() + "\n\n"
         f"Label each of the {len(batch)} items below.\n\n" + "\n".join(items) +
         "\nReturn ONLY a JSON array with one object per item, in the same order:\n"
-        '[{"item": 1, "label": "<one label>", "rationale": "<at most 15 words, quoting the '
-        'cue words from the context>", "confidence": <0.0-1.0>}]'
+        '[{"item": 1, "label": "<one label>", "rationale": "<at most 8 words: the cue '
+        'words themselves>", "confidence": <0.0-1.0>}]'
     )
 
 
@@ -73,8 +73,11 @@ def label_batch(batch: Sequence[dict], size_hint: str = "large") -> list[dict]:
         # Measured on this corpus: ~200 tokens per item plus ~500 for the shared
         # taxonomy block and the reply scaffold. A larger batch is therefore
         # cheaper per context, which matters under a tokens-per-minute cap.
+        # Output tokens are the binding limit on this provider, so the reply is
+        # kept terse and budgeted separately from the prompt.
         data = complete_json(_prompt(batch), system=SYSTEM, size=size_hint,
-                             est_tokens=210 * len(batch) + 550)
+                             est_tokens=210 * len(batch) + 550,
+                             est_output=40 * len(batch) + 60)
     if isinstance(data, dict):
         data = data.get("items") or data.get("labels") or [data]
     by_item: dict[int, dict] = {}

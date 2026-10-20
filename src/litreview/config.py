@@ -103,6 +103,7 @@ PROVIDERS: dict[str, dict] = {
         "api_key_env": "GROQ_API_KEY",
         "rpm": 20,
         "tpm": 7400,        # account limit is 8000/min; leave headroom for retries
+        "otpm": 900,        # separate, far tighter completion-token limit: 1000/min
         "price_in": 0.0,
         "price_out": 0.0,
     },

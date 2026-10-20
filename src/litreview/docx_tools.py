@@ -117,6 +117,37 @@ def insert_after(anchor_par, like_par=None):
     return Paragraph(el, anchor_par._parent)
 
 
+SUB_OPEN, SUB_CLOSE = "\u27e8", "\u27e9"
+
+
+def add_runs(par, text: str, *, size_pt: float, bold: bool = False, italic: bool = False):
+    """Write ``text`` into ``par``, turning ``x\u27e8c\u27e9`` into a real subscript run.
+
+    Variables appear in the prose as well as in the rendered equations, and
+    "n_c" with a literal underscore reads as a typo in a typeset report.
+    """
+    if SUB_OPEN not in text:
+        r = par.add_run(text)
+        r.font.size = Pt(size_pt)
+        r.bold, r.italic = bold, italic
+        return par
+    rest = text
+    while rest:
+        head, sep, tail = rest.partition(SUB_OPEN)
+        if head:
+            r = par.add_run(head)
+            r.font.size = Pt(size_pt)
+            r.bold, r.italic = bold, italic
+        if not sep:
+            break
+        subtext, _, rest = tail.partition(SUB_CLOSE)
+        r = par.add_run(subtext)
+        r.font.size = Pt(size_pt)
+        r.font.subscript = True
+        r.italic = italic
+    return par
+
+
 def add_body_paragraph(anchor_par, text: str, like_par=None, *, size_pt: float = 12.0,
                        justify: bool = True, first_line_indent: float | None = 0.3,
                        space_after_pt: float = 6.0, bold: bool = False,
@@ -130,10 +161,7 @@ def add_body_paragraph(anchor_par, text: str, like_par=None, *, size_pt: float =
     pf.line_spacing = 1.25
     pf.left_indent = Inches(left_indent_in) if left_indent_in is not None else Inches(0.25)
     pf.first_line_indent = Inches(first_line_indent) if first_line_indent else Inches(0)
-    r = p.add_run(text)
-    r.font.size = Pt(size_pt)
-    r.bold = bold
-    r.italic = italic
+    add_runs(p, text, size_pt=size_pt, bold=bold, italic=italic)
     return p
 
 

@@ -859,7 +859,7 @@ class ReportBuilder:
         ])
         cur = self.equation(cur, r"$w_c \;=\; \dfrac{N}{K\,n_c}$", "3.1", width_in=3.2)
         cur = D.add_paragraphs(cur, [
-            "where N is the number of training rows, K the number of classes and n_c the count "
+            "where N is the number of training rows, K the number of classes and n⟨c⟩ the count "
             "of class c, so that the rare relations are learnable at all. Performance is reported "
             "as macro-F1 over the classes present in the gold set,",
         ], first_line_indent=None)
@@ -867,7 +867,7 @@ class ReportBuilder:
                                  r"\sum_{c \in \mathcal{C}} \frac{2 P_c R_c}{P_c + R_c}$",
                             "3.2", width_in=4.2)
         cur = D.add_paragraphs(cur, [
-            "with P_c and R_c the precision and recall of class c, because accuracy on this "
+            "with P⟨c⟩ and R⟨c⟩ the precision and recall of class c, because accuracy on this "
             "distribution is dominated by background and would hide exactly the classes the "
             "downstream stages need. Agreement between the LLM labeller and the human gold set "
             "is reported as Cohen's κ,",
@@ -875,7 +875,7 @@ class ReportBuilder:
         cur = self.equation(cur, r"$\kappa \;=\; \dfrac{p_o - p_e}{1 - p_e}$", "3.3",
                             width_in=2.8)
         cur = D.add_paragraphs(cur, [
-            "where p_o is the observed agreement and p_e the agreement expected from the two "
+            "where p⟨o⟩ is the observed agreement and p⟨e⟩ the agreement expected from the two "
             "label distributions independently, so that a labeller that simply predicts the "
             "majority class scores near zero rather than near its accuracy.",
         ], first_line_indent=None)
@@ -915,7 +915,7 @@ class ReportBuilder:
                  r"\mathbb{1}\!\left[\max_{e \in E(s)} P_{\mathrm{ent}}(s \mid e) "
                  r"\geq \tau_{\mathrm{sup}}\right]$", "3.4", width_in=5.0)
         cur = D.add_paragraphs(cur, [
-            "where E(s) is the set of evidence passages behind sentence s and τ_sup is the "
+            "where E(s) is the set of evidence passages behind sentence s and τ⟨sup⟩ is the "
             "fitted upper threshold. A sentence that cites nothing has an empty evidence set and "
             "is unsupported by construction, which is the intended behaviour for a review that "
             "claims to be grounded. Sentences the Verifier rejects go back to the Writer once; "

@@ -113,11 +113,42 @@ class OpenAlexCache:
         time.sleep(self.delay)
         return best
 
-    def resolve_many(self, titles: list[str], progress=None) -> dict[str, dict | None]:
+    def resolve_many(self, titles: list[str], progress=None, workers: int = 8
+                     ) -> dict[str, dict | None]:
+        """Resolve a list of titles, in parallel.
+
+        OpenAlex's "polite pool" (entered by sending a mailto) allows roughly ten
+        requests a second, so a thread pool is the difference between ten minutes
+        and five hours on a pilot-sized corpus. The per-request sleep is dropped
+        when running in parallel, because the pool size is what bounds the rate.
+        """
         todo = [t for t in titles if t and t not in self.cache]
-        it = progress(todo) if progress else todo
-        for t in it:
-            self.resolve_title(t)
+        if not todo:
+            return {t: self.cache.get(t) for t in titles}
+        if workers <= 1:
+            it = progress(todo) if progress else todo
+            for t in it:
+                self.resolve_title(t)
+            self.save()
+            return {t: self.cache.get(t) for t in titles}
+
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        delay, self.delay = self.delay, 0.0
+        done = 0
+        try:
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                futures = {pool.submit(self.resolve_title, t): t for t in todo}
+                it = progress(as_completed(futures)) if progress else as_completed(futures)
+                for fut in it:
+                    try:
+                        fut.result()
+                    except Exception:
+                        pass
+                    done += 1
+                    if done % 500 == 0:
+                        self.save()
+        finally:
+            self.delay = delay
         self.save()
         return {t: self.cache.get(t) for t in titles}
 

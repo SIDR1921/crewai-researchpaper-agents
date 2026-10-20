@@ -140,7 +140,16 @@ def run_stage1(n_train: int, n_test: int, categories: list[str] | None = None,
     mined, counts = parse_corpus(papers, src_root=P.sources, progress=progress)
 
     oa = OpenAlexCache(P.data / "openalex_cache.json")
-    titles = sorted({t for m in mined.values() for t in m["keymap"].values() if t})
+    # Only related-work citations need OpenAlex: the benchmark needs their abstracts.
+    # Every other bibliography entry already has a title from the .bbl/.bib, which is
+    # all the citation-context rows carry, so resolving the full bibliography of every
+    # paper (tens of thousands of titles) would be work nothing consumes.
+    titles = sorted({
+        m["keymap"][k]
+        for m in mined.values()
+        for k in (m["related_work"] or {}).get("cited_keys", [])
+        if m["keymap"].get(k)
+    })
     oa.resolve_many(titles, progress=oa_progress)
     resolved = sum(oa.cache.get(t) is not None for t in titles)
     with_abs = sum(1 for t in titles if (oa.cache.get(t) or {}).get("abstract"))

@@ -458,7 +458,7 @@ class ReportBuilder:
             f"natural-language-inference checks {C('SummaC')} all score a summary against its "
             f"source instead of against a reference text. This project adopts that stance at the "
             f"level of the individual sentence, and goes one step further by requiring the "
-            f"system to say *which* passage each sentence is supposed to follow from, so the "
+            f"system to say exactly which passage each sentence is supposed to follow from, so the "
             f"check is well defined rather than approximate.",
             f"Multi-agent LLM frameworks have meanwhile made it cheap to decompose a task across "
             f"specialised roles with tools and a shared state "
@@ -556,7 +556,7 @@ class ReportBuilder:
             f"al. {C('Neural Related Work Summarization')}, introduced joint context-driven "
             f"attention over the citing paper's own content and the cited abstracts. Luu et al. "
             f"{C('Explaining Relationships Between Scientific Documents')} framed the problem as "
-            f"explaining the *relationship* between two documents rather than summarising one of "
+            f"explaining the relationship between two documents rather than summarising one of "
             f"them, which is the framing closest to the relation classifier used here.",
             f"Multi-XScience {C('Multi-XScience')} is the dataset that made the task a benchmark: "
             f"each example pairs a paper's related-work paragraph with the abstracts of the "
@@ -588,9 +588,9 @@ class ReportBuilder:
             f"is the starting point for the classifier in this project.",
             "The taxonomy used here is finer than SciCite's and differently cut from ACL-ARC's, "
             "for a reason that matters downstream: this project needs to distinguish neutral "
-            "comparison from asserted disagreement, because a `contrasts` edge is evidence of a "
-            "contradiction while a `compares-against` edge is not. SciCite's `result` class and "
-            "ACL-ARC's `CompareOrContrast` class both merge the two. Section 3.1 documents the "
+            "comparison from asserted disagreement, because a contrasts edge is evidence of a "
+            "contradiction while a compares-against edge is not. SciCite's result class and "
+            "ACL-ARC's CompareOrContrast class both merge the two. Section 3.1 documents the "
             "mapping used to reuse those corpora as additional training signal, and the limits "
             "of that mapping; because of those limits, mapped rows are never used as evaluation "
             "gold.",
@@ -624,7 +624,7 @@ class ReportBuilder:
             f"disentangled-attention encoder whose MNLI/FEVER/ANLI-trained checkpoints are used "
             f"as the entailment model in Chapter 3. The survey of hallucination "
             f"{C('Survey of Hallucination')} ties the strands together and is the reference for "
-            f"the terminology used in this report: a claim is *unsupported* when the evidence "
+            f"the terminology used in this report: a claim is unsupported when the evidence "
             f"does not entail it, which is weaker and more checkable than calling it false.",
         ])
 
@@ -732,10 +732,10 @@ class ReportBuilder:
             "Three gaps follow, and they are what this project addresses. First, the "
             "faithfulness literature evaluates summaries against a source document, while the "
             "review-generation literature generates from many sources and evaluates against a "
-            "reference text; almost nothing evaluates a *multi-source* review against the "
+            "reference text; almost nothing evaluates a multi-source review against the "
             "sources it cites, sentence by sentence. Second, citation-relation labels are used "
             "to study fields rather than to drive synthesis: no system known to us uses a "
-            "`contrasts` prediction as evidence that two papers disagree and then asks an agent "
+            "contrasts prediction as evidence that two papers disagree and then asks an agent "
             "to adjudicate. Third, the cost of multi-agent pipelines is rarely reported next to "
             "their quality, so it is not possible to tell from the literature whether the extra "
             "calls are worth making.",

@@ -1,0 +1,53 @@
+{
+  "rw_pairs": {
+    "available": false
+  },
+  "citation_contexts": {
+    "available": true,
+    "n_rows": 11356,
+    "n_citing_papers": 173,
+    "n_cited_titles": 6312,
+    "resolved_to_openalex": 32,
+    "with_cited_abstract": 30,
+    "in_related_work": 3226,
+    "by_split": {
+      "train": 8343,
+      "test": 3013
+    },
+    "cites_per_sentence": {
+      "n": 11356,
+      "min": 1.0,
+      "p25": 1.0,
+      "median": 2.0,
+      "mean": 3.411,
+      "p75": 4.0,
+      "max": 19.0
+    },
+    "context_words": {
+      "n": 11356,
+      "min": 21.0,
+      "p25": 60.0,
+      "median": 75.0,
+      "mean": 82.837,
+      "p75": 96.0,
+      "max": 611.0
+    },
+    "contexts_per_citing_paper": {
+      "n": 173,
+      "min": 13.0,
+      "p25": 42.0,
+      "median": 56.0,
+      "mean": 65.642,
+      "p75": 86.0,
+      "max": 193.0
+    }
+  },
+  "multixscience": {
+    "available": false
+  },
+  "time_split": {
+    "train_latest": null,
+    "test_earliest": null,
+    "disjoint": false
+  }
+}

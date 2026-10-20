@@ -76,20 +76,56 @@ def list_arxiv(window: tuple[str, str], n: int, cats: list[str], page: int = 200
     return out[:n]
 
 
-def sample_window(split: str, window: tuple[str, str], n: int, cats: list[str],
-                  oversample: int = 4, seed: int = 0, root: Path | None = None,
-                  progress=None) -> list[dict]:
-    """Cached, seeded sample of a window.
+def month_windows(window: tuple[str, str]) -> list[tuple[str, str]]:
+    """Split a submission window into calendar months."""
+    from datetime import datetime
+    start = datetime.strptime(window[0][:8], "%Y%m%d")
+    end = datetime.strptime(window[1][:8], "%Y%m%d")
+    out, y, m = [], start.year, start.month
+    while (y, m) <= (end.year, end.month):
+        ny, nm = (y + 1, 1) if m == 12 else (y, m + 1)
+        lo = max(start, datetime(y, m, 1))
+        hi_dt = datetime(ny, nm, 1)
+        hi = min(end, hi_dt)
+        if lo < hi_dt:
+            out.append((lo.strftime("%Y%m%d") + "0000",
+                        (hi.strftime("%Y%m%d") + "2359") if hi < hi_dt
+                        else (hi_dt.strftime("%Y%m%d") + "0000")))
+        y, m = ny, nm
+    return out
 
-    The API returns newest-first, so we over-fetch and then sample; otherwise a
-    "window" would really be its last few days.
+
+def sample_window(split: str, window: tuple[str, str], n: int, cats: list[str],
+                  oversample: int = 3, seed: int = 0, root: Path | None = None,
+                  progress=None) -> list[dict]:
+    """Cached, seeded sample spread across the whole window.
+
+    The arXiv API returns newest-first, so simply over-fetching and sampling gives
+    the *last* fortnight of a two-year window rather than the window. The window is
+    therefore split into calendar months and a share drawn from each, which is what
+    makes "the training window is 2023-2024" a true statement about the sample.
     """
     p = (root or paths().data) / f"papers_{split}.jsonl"
     if p.exists():
         return [json.loads(l) for l in p.open()]
-    papers = list_arxiv(window, n * oversample, cats, progress=progress)
-    random.Random(seed).shuffle(papers)
-    papers = papers[:n]
+
+    months = month_windows(window) or [window]
+    per_month = max(4, -(-n * oversample // len(months)))
+    rng = random.Random(seed)
+    pool: list[dict] = []
+    for w in months:
+        got = list_arxiv(w, per_month, cats, page=min(200, per_month), progress=progress)
+        rng.shuffle(got)
+        pool += got[: max(1, -(-n // len(months)) * oversample)]
+
+    seen, uniq = set(), []
+    for rec in pool:
+        if rec["arxiv_id"] in seen:
+            continue
+        seen.add(rec["arxiv_id"])
+        uniq.append(rec)
+    rng.shuffle(uniq)
+    papers = uniq[:n]
     p.parent.mkdir(parents=True, exist_ok=True)
     with p.open("w") as f:
         for rec in papers:

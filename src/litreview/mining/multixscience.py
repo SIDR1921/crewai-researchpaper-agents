@@ -12,20 +12,26 @@ from pathlib import Path
 
 import requests
 
+#: The repository ships the splits gzipped; the plain .json paths 404.
 RAW = ("https://raw.githubusercontent.com/yaolu/Multi-XScience/master/data/"
-       "{split}.json")
+       "{split}.json.gz")
 SPLITS = {"train": "train", "val": "val", "test": "test"}
 
 
 def download(split: str, dest: Path) -> Path:
-    """Cache the raw JSON for one split."""
+    """Cache one split, decompressing the repository's gzipped JSON."""
+    import gzip
+
     dest.mkdir(parents=True, exist_ok=True)
     out = dest / f"multixscience_{split}_raw.json"
     if out.exists() and out.stat().st_size > 1000:
         return out
-    r = requests.get(RAW.format(split=SPLITS[split]), timeout=180)
+    r = requests.get(RAW.format(split=SPLITS[split]), timeout=300)
     r.raise_for_status()
-    out.write_bytes(r.content)
+    blob = r.content
+    if blob[:2] == b"\x1f\x8b":
+        blob = gzip.decompress(blob)
+    out.write_bytes(blob)
     return out
 
 

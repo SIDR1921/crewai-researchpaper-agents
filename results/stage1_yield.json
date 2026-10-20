@@ -1,0 +1,58 @@
+{
+  "config": {
+    "n_train": 150,
+    "n_test": 50,
+    "categories": [
+      "cs.CL",
+      "cs.IR"
+    ],
+    "train_window": [
+      "202301010000",
+      "202412312359"
+    ],
+    "test_window": [
+      "202606010000",
+      "202609302359"
+    ],
+    "seed": 0
+  },
+  "yield": {
+    "listed": 200,
+    "no_source": 24,
+    "no_main": 0,
+    "parse_error": 0,
+    "parsed": 176,
+    "no_related_work": 23,
+    "with_related_work": 153
+  },
+  "openalex": {
+    "unique_cited_titles": 2938,
+    "resolved": 5,
+    "resolved_pct": 0.2,
+    "with_abstract": 5,
+    "with_abstract_pct": 0.2
+  },
+  "datasets": {
+    "contexts_rows": 11356,
+    "contexts_resolved_to_openalex": 32,
+    "rw_pairs_kept": 0,
+    "rw_pairs_dropped_low_coverage": 152,
+    "rw_pairs_dropped_too_few_cites": 1
+  },
+  "windows_by_split": {
+    "train": {
+      "min": "2024-12-19",
+      "max": "2024-12-31",
+      "n": 150
+    },
+    "test": {
+      "min": "2026-09-29",
+      "max": "2026-09-30",
+      "n": 50
+    }
+  },
+  "multixscience": {
+    "available": false,
+    "error": "404 Client Error: Not Found for url: https://raw.githubusercontent.com/yaolu/Multi-XScience/master/data/test.json"
+  }
+}

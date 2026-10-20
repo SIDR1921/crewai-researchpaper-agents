@@ -7,6 +7,7 @@ free; transient errors are *not* cached, so they are retried.
 from __future__ import annotations
 
 import json
+import random
 import threading
 import time
 from pathlib import Path
@@ -67,6 +68,7 @@ class OpenAlexCache:
         self.mailto = mailto or secret("OPENALEX_MAILTO") or "litreview@example.com"
         self.delay = delay
         self._lock = threading.Lock()
+        self.backoff_until = 0.0
         self.cache: dict[str, dict | None] = {}
         if self.path.exists():
             try:
@@ -91,15 +93,10 @@ class OpenAlexCache:
             return None
         if title in self.cache:
             return self.cache[title]
-        try:
-            r = requests.get(OPENALEX, timeout=30, headers={"User-Agent": USER_AGENT}, params={
-                "search": title[:300], "per_page": 3, "mailto": self.mailto, "select": SELECT})
-            if r.status_code == 429:
-                time.sleep(5)
-                return None                       # retried on the next run
-            results = r.json().get("results", [])
-        except Exception:
-            return None                           # transient: do not cache
+        self._wait_for_backoff()
+        results = self._search(title)
+        if results is None:
+            return None                           # transient failure: do not cache
         best, best_score = None, -1.0
         for w in results:
             score = fuzz.token_sort_ratio(title.lower(), (w.get("title") or "").lower())
@@ -113,14 +110,57 @@ class OpenAlexCache:
         time.sleep(self.delay)
         return best
 
-    def resolve_many(self, titles: list[str], progress=None, workers: int = 8
+    def _search(self, title: str, attempts: int = 4) -> list[dict] | None:
+        """One OpenAlex search, with backoff. ``None`` means the request failed.
+
+        Distinguishing "searched and found nothing" from "the request failed" is
+        what keeps a rate-limited burst from poisoning the cache with permanent
+        misses: only the former is ever cached.
+        """
+        params = {"search": title[:300], "per_page": 3, "select": SELECT}
+        if self.mailto:
+            params["mailto"] = self.mailto
+        for i in range(attempts):
+            try:
+                r = requests.get(OPENALEX, timeout=45,
+                                 headers={"User-Agent": USER_AGENT}, params=params)
+            except Exception:
+                time.sleep(min(30, 2 ** i))
+                continue
+            if r.status_code == 429:
+                wait = float(r.headers.get("Retry-After") or 0) or min(60, 5 * 2 ** i)
+                with self._lock:                 # make every thread back off together
+                    self.backoff_until = max(getattr(self, "backoff_until", 0.0),
+                                             time.monotonic() + wait)
+                time.sleep(wait + random.uniform(0, 1.0))
+                continue
+            if r.status_code >= 500:
+                time.sleep(min(30, 2 ** i))
+                continue
+            if not r.ok:
+                return None
+            try:
+                return r.json().get("results", [])
+            except ValueError:
+                return None
+        return None
+
+    def _wait_for_backoff(self) -> None:
+        while True:
+            with self._lock:
+                left = getattr(self, "backoff_until", 0.0) - time.monotonic()
+            if left <= 0:
+                return
+            time.sleep(min(left, 2.0))
+
+    def resolve_many(self, titles: list[str], progress=None, workers: int = 3
                      ) -> dict[str, dict | None]:
         """Resolve a list of titles, in parallel.
 
-        OpenAlex's "polite pool" (entered by sending a mailto) allows roughly ten
-        requests a second, so a thread pool is the difference between ten minutes
-        and five hours on a pilot-sized corpus. The per-request sleep is dropped
-        when running in parallel, because the pool size is what bounds the rate.
+        A small thread pool is the difference between ten minutes and five hours on
+        a pilot-sized corpus. It is deliberately small, and every worker shares one
+        backoff deadline, because OpenAlex answers a burst with 429s and a 429 that
+        got cached as a miss would silently empty the benchmark.
         """
         todo = [t for t in titles if t and t not in self.cache]
         if not todo:
@@ -133,7 +173,7 @@ class OpenAlexCache:
             return {t: self.cache.get(t) for t in titles}
 
         from concurrent.futures import ThreadPoolExecutor, as_completed
-        delay, self.delay = self.delay, 0.0
+        delay, self.delay = self.delay, 0.12
         done = 0
         try:
             with ThreadPoolExecutor(max_workers=workers) as pool:

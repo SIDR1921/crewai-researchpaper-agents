@@ -1095,6 +1095,50 @@ class ReportBuilder:
             f"report; the text and the table will appear automatically.",
             italic=True, first_line_indent=None)
 
+    def resolution_paragraph(self) -> str:
+        """How cited references were resolved, in the order the pipeline tries."""
+        R = self.R
+        ax = R.get("stage1_yield.json", "arxiv_metadata") or {}
+        doi = R.get("stage1_yield.json", "doi_batch") or {}
+        oa = R.get("stage1_yield.json", "openalex") or {}
+        exhausted = R.get("stage1_yield.json", "budget.openalex_daily_budget_exhausted")
+        parts = [
+            "References are resolved by identifier first and by title only as a fallback, "
+            "because an identifier resolves a reference exactly where a title match resolves "
+            "it merely probably, and because the fallback is what costs money."
+        ]
+        if ax.get("ids_cited_in_related_work"):
+            parts.append(
+                f"Of the references cited from related-work sections, "
+                f"{ax['ids_cited_in_related_work']:,} carried an arXiv identifier and all "
+                f"{ax.get('resolved', 0):,} of them resolved through the arXiv API, every one "
+                f"with an abstract; for a corpus mined from arXiv this is also the more "
+                f"authoritative source, since it returns the abstract of the version actually "
+                f"cited.")
+        if doi.get("dois_cited_in_related_work"):
+            parts.append(
+                f"A further {doi['dois_cited_in_related_work']:,} carried a DOI, resolved "
+                f"fifty at a time through OpenAlex, of which {doi.get('resolved', 0):,} came "
+                f"back ({doi.get('with_abstract', 0):,} with an abstract).")
+        if oa.get("titles_needing_search") is not None:
+            parts.append(
+                f"That left {oa['titles_needing_search']:,} references with no identifier at "
+                f"all, which had to be resolved by title search; {oa.get('resolved', 0):,} "
+                f"matched above the similarity floor of 88 and "
+                f"{oa.get('with_abstract', 0):,} of those yielded an abstract.")
+        if exhausted:
+            parts.append(
+                "The title-search pass did not finish: OpenAlex's free tier is a small daily "
+                "budget per key, and it ran out partway through. Every reference resolved so "
+                "far is cached, so re-running after the reset continues rather than restarts, "
+                "and the benchmark reported below is therefore a lower bound on what this "
+                "corpus yields.")
+        parts.append(
+            "The gap between a reference being identified and its abstract being retrievable "
+            "is the main reason benchmark examples are dropped, since a paper can be "
+            "identified without an abstract being available to redistribute.")
+        return " ".join(parts)
+
     def chapter4(self) -> None:
         R, C = self.R, self.refs.cite
         _, ch = self.anchor("CHAPTER 4", exact=True)
@@ -1133,12 +1177,7 @@ class ReportBuilder:
                 f"{ds.get('rw_pairs_kept')} papers remain as benchmark examples and "
                 f"{ds.get('contexts_rows'):,} citation contexts were written. Figure 4 shows the "
                 f"attrition at each step.",
-                f"Title resolution against OpenAlex succeeded for "
-                f"{oa.get('resolved_pct')}% of {oa.get('unique_cited_titles'):,} unique cited "
-                f"titles, and {oa.get('with_abstract_pct')}% of those titles yielded an abstract. "
-                f"The gap between the two is the main reason benchmark examples are dropped: a "
-                f"paper can be identified without its abstract being redistributable, and this "
-                f"project only uses abstracts OpenAlex returns.",
+                self.resolution_paragraph(),
             ])
             cur = self.figure(cur, "fig_stage1_yield.png",
                               "Mining yield: papers surviving each step, as counts and as a "

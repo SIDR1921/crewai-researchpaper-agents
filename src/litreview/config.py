@@ -102,7 +102,7 @@ PROVIDERS: dict[str, dict] = {
         "small_model": "groq/openai/gpt-oss-20b",
         "api_key_env": "GROQ_API_KEY",
         "rpm": 20,
-        "tpm": 6500,        # account limit is 8000/min; leave headroom for retries
+        "tpm": 7400,        # account limit is 8000/min; leave headroom for retries
         "price_in": 0.0,
         "price_out": 0.0,
     },

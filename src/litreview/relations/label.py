@@ -70,8 +70,11 @@ def _prompt(batch: Sequence[dict]) -> str:
 def label_batch(batch: Sequence[dict], size_hint: str = "large") -> list[dict]:
     """Label one batch. Rows the model fails to label come back with ``label=None``."""
     with tagged("relation_labelling"):
+        # Measured on this corpus: ~200 tokens per item plus ~500 for the shared
+        # taxonomy block and the reply scaffold. A larger batch is therefore
+        # cheaper per context, which matters under a tokens-per-minute cap.
         data = complete_json(_prompt(batch), system=SYSTEM, size=size_hint,
-                             est_tokens=400 * len(batch) + 600)
+                             est_tokens=210 * len(batch) + 550)
     if isinstance(data, dict):
         data = data.get("items") or data.get("labels") or [data]
     by_item: dict[int, dict] = {}

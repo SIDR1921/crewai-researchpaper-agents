@@ -1,0 +1,60 @@
+{
+  "made": [
+    {
+      "file": "fig_stage1_yield.png",
+      "caption": "Stage 1 mining yield: papers surviving each step of the pipeline.",
+      "source": "results/stage1_yield.json"
+    },
+    {
+      "file": "fig_dataset_stats.png",
+      "caption": "Distribution of related-work length, number of cited papers and abstract coverage.",
+      "source": "results/stage1_dataset_stats.json"
+    }
+  ],
+  "skipped": [
+    {
+      "file": "fig_label_distribution.png",
+      "reason": "results/stage2_labelling.json missing"
+    },
+    {
+      "file": "fig_relation_confusion.png",
+      "reason": "no confusion matrix in results/stage2_*.json"
+    },
+    {
+      "file": "fig_relation_models.png",
+      "reason": "results/stage2_benchmark.json missing"
+    },
+    {
+      "file": "fig_verifier_calibration.png",
+      "reason": "results/verifier_calibration.json missing"
+    },
+    {
+      "file": "fig_claim_verdicts.png",
+      "reason": "no results/stage3_verify_*.json"
+    },
+    {
+      "file": "fig_gap_heatmap.png",
+      "reason": "no flow run with gaps.json"
+    },
+    {
+      "file": "fig_relation_counts.png",
+      "reason": "results/flow_summary.json missing"
+    },
+    {
+      "file": "fig_eval_arxiv.png",
+      "reason": "results/eval_arxiv.json missing"
+    },
+    {
+      "file": "fig_eval_multixscience.png",
+      "reason": "results/eval_multixscience.json missing"
+    },
+    {
+      "file": "fig_cost_latency.png",
+      "reason": "results/eval_arxiv.json missing"
+    },
+    {
+      "file": "fig_usage_by_stage.png",
+      "reason": "results/llm_usage.json missing"
+    }
+  ]
+}

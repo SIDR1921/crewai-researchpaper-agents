@@ -264,7 +264,15 @@ def usage_summary(path: str | Path | None = None) -> dict:
 # --------------------------------------------------------------- rate limiting
 
 class RateLimiter:
-    """Token bucket on requests/min and tokens/min, shared across threads."""
+    """Token bucket on requests/min and tokens/min, shared across threads.
+
+    Reservations are made up front from an estimate, which means a batch whose
+    estimate is a large fraction of the per-minute budget packs badly: two
+    reservations of 3,900 do not fit inside 7,400, so only one call runs a minute
+    even though the real usage would have allowed nearly two. Prefer several small
+    batches over one large one; :func:`litreview.relations.label.label_contexts`
+    is tuned on that basis.
+    """
 
     def __init__(self, rpm: int, tpm: int) -> None:
         self.rpm, self.tpm = rpm, tpm

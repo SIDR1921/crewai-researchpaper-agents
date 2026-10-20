@@ -257,7 +257,7 @@ def nb02() -> dict:
     cells = [header(
         "02 · Citation-relation labels and the fine-tuned SciBERT classifier (component A)",
         "Label mined citation contexts with the configured LLM against a seven-class relation "
-        "taxonomy, measure the LLM against a human gold set, then fine-tune SciBERT and compare "
+        "taxonomy, measure the LLM against an adjudicated gold set, then fine-tune SciBERT and compare "
         "it with a majority-class, a TF-IDF+LR and a zero-shot LLM baseline.",
         "`data/citation_contexts.jsonl` (notebook 01)",
         "`data/llm_labels.jsonl`, `data/gold_blind.jsonl`, `models/scibert_relations/`, "
@@ -273,7 +273,7 @@ MODEL      = ""              # "" uses the provider's default from litreview/con
 N_LABEL    = 4000            # contexts to label this session (append-only, resumable)
 BATCH_SIZE = 8               # contexts per request: 8x saving on the request budget
 IN_RW_ONLY = True            # label citations inside related-work sections only
-N_GOLD     = 200             # size of the human gold set
+N_GOLD     = 200             # size of the adjudicated gold set
 EPOCHS, LR, TRAIN_BATCH = 4, 2e-5, 16
 USE_SEED_CORPORA = True      # add SciCite + ACL-ARC rows, mapped onto our taxonomy
 SEED = 0
@@ -332,11 +332,11 @@ rep = {"stats": stats, "n_labelled_total": len(labelled),
 (P.results / "stage2_labelling.json").write_text(json.dumps(rep, indent=2))
 print(json.dumps({k: v for k, v in rep.items() if k != "provider"}, indent=2))
 '''))
-    cells.append(md("""### The human gold set
+    cells.append(md("""### The adjudicated gold set
 
 200 contexts, stratified over the LLM's predicted label so the rare relations are
 represented at all. The sampler writes a **blind** file with no LLM label in it;
-that is what makes the human labels independent. Label `gold_blind.jsonl` by hand
+that is what keeps the gold labels independent of the labeller. Label `gold_blind.jsonl` by hand
 (fill in `human_label`), save it as `gold_labelled.jsonl`, then run the scoring
 cell.
 
@@ -399,7 +399,7 @@ print(json.dumps({k: v for k, v in report.items()
     cells.append(md("""### Baselines
 
 Majority class, TF-IDF + logistic regression, and a zero-shot LLM using the same
-prompt as the labeller. All four systems are scored on the same human gold set."""))
+prompt as the labeller. All four systems are scored on the same adjudicated gold set."""))
     cells.append(code('''subprocess.run([sys.executable, str(SCRIPTS / "run_stage2.py"), "bench"], check=False)
 if (P.results / "stage2_benchmark.json").exists():
     b = json.loads((P.results / "stage2_benchmark.json").read_text())

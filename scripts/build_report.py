@@ -371,9 +371,9 @@ class ReportBuilder:
             p2 += "Stage 1 mining statistics were not available when this report was built. "
         if kappa is not None and sci_f1 is not None:
             p2 += (f"A seven-class citation-relation classifier fine-tuned from SciBERT reaches "
-                   f"{sci_f1:.2f} macro-F1 on a hand-labelled gold set"
+                   f"{sci_f1:.2f} macro-F1 on a adjudicated gold set"
                    + (f", against {tfidf_f1:.2f} for a TF-IDF baseline" if tfidf_f1 is not None else "")
-                   + f"; the LLM labels it learns from agree with the human gold set at "
+                   + f"; the LLM labels it learns from agree with the adjudicated gold set at "
                      f"κ = {kappa:.2f}.")
         parts.append(p2)
 
@@ -502,7 +502,7 @@ class ReportBuilder:
             "report the yield at every step of the pipeline as a percentage of papers listed.",
             "Define a seven-class citation-relation taxonomy with a written labelling guide, "
             "label contexts with an LLM, and quantify how far those labels can be trusted by "
-            "measuring accuracy and Cohen's κ against an independently hand-labelled gold set.",
+            "measuring accuracy and Cohen's κ against an independently adjudicated gold set.",
             "Fine-tune SciBERT on those labels and beat a majority-class, a TF-IDF + logistic-"
             "regression and a zero-shot LLM baseline on macro-F1 over the gold set.",
             "Extract structured records in which every claim quotes its evidence verbatim, and "
@@ -869,7 +869,7 @@ class ReportBuilder:
         cur = D.add_paragraphs(cur, [
             "with P⟨c⟩ and R⟨c⟩ the precision and recall of class c, because accuracy on this "
             "distribution is dominated by background and would hide exactly the classes the "
-            "downstream stages need. Agreement between the LLM labeller and the human gold set "
+            "downstream stages need. Agreement between the LLM labeller and the adjudicated gold set "
             "is reported as Cohen's κ,",
         ], first_line_indent=None)
         cur = self.equation(cur, r"$\kappa \;=\; \dfrac{p_o - p_e}{1 - p_e}$", "3.3",
@@ -1013,7 +1013,7 @@ class ReportBuilder:
             "result.",
             "Leakage is controlled by the submission window. Training papers come from 2023-2024 "
             "and test papers from a window that begins after the knowledge cutoff of every model "
-            "evaluated. The Verifier's thresholds, the classifier's dev split and the human gold "
+            "evaluated. The Verifier's thresholds, the classifier's dev split and the adjudicated gold "
             "set all come from the training split, so nothing is tuned on the benchmark. The "
             "dates and the residual risks — chiefly that the cited papers are necessarily old "
             "and so plausibly inside every model's training data, even though the target text is "
@@ -1259,9 +1259,14 @@ class ReportBuilder:
                                   "labelled pool.")
             if lvg:
                 cur = D.add_paragraphs(cur, [
-                    f"A gold set of {ag.get('n_gold')} contexts was labelled by hand without "
+                    f"A gold set of {ag.get('n_gold')} contexts was labelled without "
                     f"sight of the LLM's labels, stratified over the LLM's predictions so that "
-                    f"the rare relations appear at all. Against that gold set the LLM labeller "
+                    f"the rare relations appear at all. The provenance of these labels matters "
+                    f"and is stated plainly: they were assigned by the AI assistant that built "
+                    f"this pipeline, working from the written labelling guide and blind to the "
+                    f"labeller's output, and then reviewed by the author. They are an "
+                    f"independent second opinion, not an expert human annotation, and the "
+                    f"agreement figures below should be read as such. Against that gold set the LLM labeller "
                     f"reaches {lvg.get('accuracy', 0):.3f} accuracy and "
                     f"{lvg.get('macro_f1', 0):.3f} macro-F1, with Cohen's κ = "
                     f"{lvg.get('cohen_kappa', 0):.3f}. Because the sample is stratified rather "
@@ -1280,7 +1285,7 @@ class ReportBuilder:
                         rows.append([name, f"{m['accuracy']:.3f}", f"{m['macro_f1']:.3f}"])
                 cur = self.table(cur, rows,
                                  f"Citation-relation classification on the "
-                                 f"{bench.get('n_gold', '?')}-context human gold set. The gold "
+                                 f"{bench.get('n_gold', '?')}-context adjudicated gold set. The gold "
                                  f"set is stratified over the LLM's predictions, so absolute "
                                  f"accuracy is pessimistic; the ordering is the result.",
                                  size_pt=9.5, widths_in=[3.0, 1.2, 1.2],
@@ -1314,12 +1319,12 @@ class ReportBuilder:
                               "Figure 7 show where their mass goes instead.",
                         ])
             cur = self.figure(cur, "fig_relation_confusion.png",
-                              "Row-normalised confusion matrices on the human gold set, for the "
+                              "Row-normalised confusion matrices on the adjudicated gold set, for the "
                               "LLM labeller and for the fine-tuned classifier. Cell text is the "
                               "raw count.")
             cur = self.figure(cur, "fig_relation_models.png",
                               "Accuracy and macro-F1 of each relation-classification system on "
-                              "the human gold set.")
+                              "the adjudicated gold set.")
         else:
             cur = self._not_run(cur, "Stage 2 classification",
                                 "results/stage2_benchmark.json is absent, so neither the LLM "
@@ -1568,14 +1573,19 @@ class ReportBuilder:
             "systems is made where those intervals overlap.",
             "LLM-labelled training data. The relation classifier is trained on labels produced "
             "by a language model, not by humans. Section 4.2 quantifies how far those labels can "
-            "be trusted against a hand-labelled gold set, and the classifier cannot be better "
+            "be trusted against a adjudicated gold set, and the classifier cannot be better "
             "than its teacher on classes where the teacher is weak. The gold set itself is "
             "stratified rather than random, which makes the agreement figure pessimistic but "
             "also means it does not estimate accuracy on arbitrary text.",
-            "Single annotator. The gold labels, the Verifier's dev set and the contradiction and "
-            "gap spot checks were each produced by one annotator, so no inter-annotator "
-            "agreement can be computed and systematic bias in the labelling guide would not "
-            "show up.",
+            "Who produced the gold labels. The gold set, the Verifier's dev set and the "
+            "contradiction and gap spot checks were labelled by the AI assistant that built "
+            "the pipeline, blind to the labeller's own output and following the written "
+            "guide, then reviewed by the author. That is an independent second opinion rather "
+            "than expert human annotation: a systematic misreading of the labelling guide "
+            "would affect both the labeller and the gold set in the same direction, and with a "
+            "single annotator no inter-annotator agreement can be computed. Every agreement "
+            "figure in Section 4.2 should be read with this in mind, and replacing these "
+            "labels with independently sourced human ones is the first item in Section 5.2.",
             "NLI model errors. The Verifier inherits the failure modes of its entailment model: "
             "it is weak on numerical and quantitative entailment, which is exactly what many "
             "scientific claims turn on, and it treats hedged statements inconsistently. A claim "

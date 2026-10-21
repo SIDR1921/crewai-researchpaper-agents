@@ -27,12 +27,25 @@ from ..config import HF_MODELS
 from .taxonomy import ID_TO_LABEL, LABEL_TO_ID, LABELS
 
 
-def best_device() -> str:
+def best_device(task: str = "inference") -> str:
+    """Pick a device, honouring ``LITREVIEW_DEVICE`` if it is set.
+
+    Apple's MPS backend is not always the fast option. Measured on this project's
+    development machine, fine-tuning SciBERT-base at a sequence length of 256 ran
+    at 52.8 s per batch of 16 on MPS against 8.9 s on CPU -- six times slower --
+    because some operation in the training step falls back or synchronises badly.
+    Inference is fine on MPS, so only training defaults away from it.
+    """
+    import os
+
     import torch
+    override = os.environ.get("LITREVIEW_DEVICE")
+    if override:
+        return override
     if torch.cuda.is_available():
         return "cuda"
     if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
-        return "mps"
+        return "cpu" if task == "train" else "mps"
     return "cpu"
 
 
@@ -83,7 +96,7 @@ def train(
     torch.manual_seed(seed)
     random.seed(seed)
     np.random.seed(seed)
-    device = device or best_device()
+    device = device or best_device("train")
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 

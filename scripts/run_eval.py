@@ -50,7 +50,7 @@ def main() -> int:
         from litreview.verify import Verifier
         verifier = Verifier()
     md = P.models / "scibert_relations"
-    if md.exists() and "S3" in args.systems:
+    if (md / "train_report.json").exists() and "S3" in args.systems:
         from litreview.relations.scibert import RelationClassifier
         classifier = RelationClassifier(md)
     elif "S3" in args.systems:

@@ -39,6 +39,9 @@ ml = [
   "datasets>=2.20",
   "accelerate>=0.33",
   "scikit-learn>=1.5",
+  # DeBERTa-v3's tokenizer is sentencepiece-based; transformers cannot build it
+  # without this and the Verifier fails to load in a fresh process.
+  "sentencepiece>=0.2",
   "sentence-transformers>=3.0",
   "peft>=0.12",
 ]

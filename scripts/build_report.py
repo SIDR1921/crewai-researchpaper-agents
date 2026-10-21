@@ -231,7 +231,7 @@ class ReportBuilder:
         self.toc.append({"kind": kind, "number": number, "label": label, "bookmark": name})
         return name
 
-    def figure(self, anchor_par, filename: str, caption: str, width_in: float = 5.8):
+    def figure(self, anchor_par, filename: str, caption: str, width_in: float = 5.1):
         """Insert a figure with a numbered caption, or a visible note if it is missing."""
         path = self.figures / filename
         if not path.exists():
@@ -1083,7 +1083,7 @@ class ReportBuilder:
         cur = self.figure(cur, "fig_console_overview.png",
                           "The console's overview. Each step shows real figures from the file "
                           "it wrote, and a step that has not run is marked pending instead of "
-                          "being filled in with a guess.", width_in=5.9)
+                          "being filled in with a guess.", width_in=4.9)
         cur = D.add_paragraphs(cur, [
             "The most useful view is the test set itself, in {{FIG:fig_console_benchmark.png}}. Opening a paper shows "
             "the related-work section its author actually wrote, which is hidden from every "
@@ -1096,7 +1096,7 @@ class ReportBuilder:
                           "A test example in the console: the section the author wrote, above "
                           "the cited papers' abstracts that are the only input a system is "
                           "given. Greyed-out entries are references whose abstract could not "
-                          "be retrieved.", width_in=5.9)
+                          "be retrieved.", width_in=4.9)
         cur = D.add_paragraphs(cur, [
             "A third view shows a generated review one sentence at a time. Clicking a sentence "
             "shows the quoted line it was checked against and the score it received, and "
@@ -1787,7 +1787,7 @@ class ReportBuilder:
                               "The worked example in the console. Sentences are underlined by "
                               "outcome, and selecting one shows the paper it cites, the "
                               "closest supporting line, and the score. Here every sentence is "
-                              "unsupported.", width_in=6.0)
+                              "unsupported.", width_in=5.2)
             cur = D.add_paragraphs(cur, [
                 f"Two things about this run should be kept in mind when reading the number. "
                 f"It used {model_name}"
@@ -2304,8 +2304,10 @@ class ReportBuilder:
 
         try:
             _, lof = self.anchor("LIST OF FIGURES")
-            D.add_body_paragraph(lof, D.WORD_UPDATE_HINT, size_pt=9.0, italic=True,
-                                 first_line_indent=None)
+            D.add_body_paragraph(lof, "Page numbers are Word fields; press Ctrl+A then F9 "
+                                      "to refresh them after editing.",
+                                 size_pt=9.0, italic=True, first_line_indent=None,
+                                 space_after_pt=2)
         except KeyError:
             pass
         self.notes.append("Page numbers in the three front-matter tables are Word PAGEREF "
@@ -2336,12 +2338,11 @@ class ReportBuilder:
                 D.page_break_before(p)
             except KeyError:
                 pass
-        for text in ("LIST OF TABLES", "LIST OF FIGURES"):
-            try:
-                _, p = self.anchor(text)
-                D.page_break_before(p)
-            except KeyError:
-                pass
+        try:                                   # the two lists share a page
+            _, p = self.anchor("LIST OF TABLES")
+            D.page_break_before(p)
+        except KeyError:
+            pass
         # the Table of Contents table has no heading paragraph of its own
         tbl = self.doc.tables[0] if self.doc.tables else None
         if tbl is not None:
@@ -2372,6 +2373,7 @@ class ReportBuilder:
         self.resolve_refs()
         self.front_matter()
         self.page_breaks()
+        self.removed_blanks = D.tighten(self.doc)
         self.out.parent.mkdir(parents=True, exist_ok=True)
         self.doc.save(str(self.out))
         return {
@@ -2381,6 +2383,7 @@ class ReportBuilder:
             "unresolved_citations": self.refs.unresolved,
             "missing_figures": self.missing_figures,
             "unresolved_references": self.unresolved_refs,
+            "blank_space_removed": getattr(self, "removed_blanks", {}),
             "results_lookups_ok": self.R.hits,
             "results_lookups_missing": sorted(set(self.R.misses)),
             "notes": self.notes,
@@ -2403,6 +2406,9 @@ def render_pdf(docx_path: Path) -> Path | None:
     script = f'''
     tell application "Microsoft Word"
         set display alerts to none
+        try
+            close every document saving no
+        end try
         open file name ((POSIX file "{docx_path}") as string)
         set n to count of (fields of active document)
         set ok to 0
@@ -2422,7 +2428,7 @@ def render_pdf(docx_path: Path) -> Path | None:
     '''
     try:
         r = subprocess.run(["osascript", "-e", script], capture_output=True, text=True,
-                           timeout=420)
+                           timeout=600)
     except (FileNotFoundError, subprocess.TimeoutExpired) as e:
         print(f"PDF: could not drive Microsoft Word ({e}). Open the .docx and export "
               f"manually; {D.WORD_UPDATE_HINT}")

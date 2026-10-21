@@ -42,7 +42,7 @@ def main() -> int:
     clf = None
     if not args.no_relations:
         md = P.models / "scibert_relations"
-        if md.exists():
+        if (md / "train_report.json").exists():
             from litreview.relations.scibert import RelationClassifier
             clf = RelationClassifier(md)
         else:

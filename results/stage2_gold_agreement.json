@@ -1,0 +1,148 @@
+{
+  "n_gold": 200,
+  "n_comparable": 200,
+  "gold_distribution": {
+    "background": 159,
+    "uses-method": 3,
+    "uses-data": 2,
+    "extends": 1,
+    "compares-against": 4,
+    "supports": 2,
+    "contrasts": 29
+  },
+  "llm_distribution": {
+    "background": 117,
+    "uses-method": 17,
+    "uses-data": 14,
+    "extends": 1,
+    "compares-against": 15,
+    "supports": 17,
+    "contrasts": 19
+  },
+  "llm_vs_gold": {
+    "accuracy": 0.625,
+    "macro_f1": 0.3269,
+    "per_class": {
+      "background": {
+        "precision": 0.8889,
+        "recall": 0.6541,
+        "f1": 0.7536,
+        "support": 159
+      },
+      "uses-method": {
+        "precision": 0.1765,
+        "recall": 1.0,
+        "f1": 0.3,
+        "support": 3
+      },
+      "uses-data": {
+        "precision": 0.1429,
+        "recall": 1.0,
+        "f1": 0.25,
+        "support": 2
+      },
+      "extends": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 1
+      },
+      "compares-against": {
+        "precision": 0.2,
+        "recall": 0.75,
+        "f1": 0.3158,
+        "support": 4
+      },
+      "supports": {
+        "precision": 0.1176,
+        "recall": 1.0,
+        "f1": 0.2105,
+        "support": 2
+      },
+      "contrasts": {
+        "precision": 0.5789,
+        "recall": 0.3793,
+        "f1": 0.4583,
+        "support": 29
+      }
+    },
+    "confusion": [
+      [
+        104,
+        14,
+        12,
+        0,
+        7,
+        15,
+        7
+      ],
+      [
+        0,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        3,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        12,
+        0,
+        0,
+        1,
+        5,
+        0,
+        11
+      ]
+    ],
+    "labels": [
+      "background",
+      "uses-method",
+      "uses-data",
+      "extends",
+      "compares-against",
+      "supports",
+      "contrasts"
+    ],
+    "n": 200,
+    "cohen_kappa": 0.2744
+  },
+  "note": "The gold set is stratified over the LLM's predicted label so rare relations are represented; agreement here is therefore not an estimate of accuracy on a uniformly random citation context.",
+  "gold_path": "/Users/siddharth1921/Claude/litreview/data/gold_labelled.jsonl"
+}

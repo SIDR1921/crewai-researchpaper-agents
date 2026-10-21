@@ -111,6 +111,7 @@ def cmd_train(args) -> int:
     tr, dev = split_by_paper(rows, frac_dev=0.15, seed=args.seed)
     report = train(tr, P.models / "scibert_relations", epochs=args.epochs, lr=args.lr,
                    batch_size=args.batch_size, dev_rows=dev, seed=args.seed,
+                   max_len=args.max_len,
                    progress=lambda dl, d: tqdm(dl, desc=d))
     report["seed_corpora"] = extra
     gold = _gold_rows(P)
@@ -149,6 +150,17 @@ def cmd_bench(args) -> int:
             "n_unparsed": len(gold) - len(pairs),
             "cohen_kappa": baselines.cohen_kappa([p for _, p in pairs],
                                                  [h for h, _ in pairs])}
+    # The LLM labeller is itself the zero-shot baseline: identical prompt, identical
+    # model, no training. Its score against the gold set is already measured by
+    # score_gold.py, so it is reused here rather than paid for a second time.
+    ag = P.results / "stage2_gold_agreement.json"
+    if "zero_shot_llm" not in out and ag.exists():
+        lvg = json.loads(ag.read_text()).get("llm_vs_gold") or {}
+        if lvg:
+            out["zero_shot_llm"] = lvg | {
+                "note": "the labelling prompt applied zero-shot; identical prompt and model, "
+                        "scored against the same gold set"}
+
     model_dir = P.models / "scibert_relations"
     if model_dir.exists():
         out["scibert"] = RelationClassifier(model_dir).evaluate(gold)
@@ -172,13 +184,14 @@ def main() -> int:
     l.add_argument("--seed", type=int, default=0)
     l.set_defaults(fn=cmd_label)
     t = sub.add_parser("train")
-    t.add_argument("--epochs", type=int, default=4)
+    t.add_argument("--epochs", type=int, default=3)
     t.add_argument("--lr", type=float, default=2e-5)
     t.add_argument("--batch-size", type=int, default=16)
+    t.add_argument("--max-len", type=int, default=160)
     t.add_argument("--seed", type=int, default=0)
     t.add_argument("--seed-corpora", action="store_true", default=True)
     t.add_argument("--no-seed-corpora", dest="seed_corpora", action="store_false")
-    t.add_argument("--seed-limit", type=int, default=2000)
+    t.add_argument("--seed-limit", type=int, default=800)
     t.set_defaults(fn=cmd_train)
     sub.add_parser("summarise").set_defaults(fn=cmd_summarise)
     b = sub.add_parser("bench")

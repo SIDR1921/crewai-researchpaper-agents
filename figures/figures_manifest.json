@@ -14,25 +14,34 @@
       "file": "fig_label_distribution.png",
       "caption": "Distribution of LLM-assigned citation relations over the labelled pool.",
       "source": "results/stage2_labelling.json"
-    }
-  ],
-  "skipped": [
+    },
     {
       "file": "fig_relation_confusion.png",
-      "reason": "no confusion matrix in results/stage2_*.json"
+      "caption": "Confusion matrices on the human gold set, row-normalised; cell text is the count.",
+      "source": "results/stage2_benchmark.json, results/stage2_gold_agreement.json"
     },
     {
       "file": "fig_relation_models.png",
-      "reason": "results/stage2_benchmark.json missing"
+      "caption": "Citation-relation classification on the human gold set: baselines vs fine-tuned SciBERT.",
+      "source": "results/stage2_benchmark.json"
     },
     {
       "file": "fig_verifier_calibration.png",
-      "reason": "results/verifier_calibration.json missing"
+      "caption": "Verifier calibration: hand-checked dev items against the fitted thresholds, and the top of the threshold grid.",
+      "source": "results/verifier_calibration.json"
     },
     {
       "file": "fig_claim_verdicts.png",
-      "reason": "no results/stage3_verify_*.json"
+      "caption": "Verifier verdicts over extracted claims, by extraction run.",
+      "source": "results/stage3_verify_*.json"
     },
+    {
+      "file": "fig_usage_by_stage.png",
+      "caption": "LLM tokens consumed per pipeline stage, from the central call log.",
+      "source": "results/llm_usage.json"
+    }
+  ],
+  "skipped": [
     {
       "file": "fig_gap_heatmap.png",
       "reason": "no flow run with gaps.json"
@@ -52,10 +61,6 @@
     {
       "file": "fig_cost_latency.png",
       "reason": "results/eval_arxiv.json missing"
-    },
-    {
-      "file": "fig_usage_by_stage.png",
-      "reason": "results/llm_usage.json missing"
     }
   ]
 }

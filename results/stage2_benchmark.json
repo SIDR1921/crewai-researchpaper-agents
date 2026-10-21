@@ -1,0 +1,604 @@
+{
+  "n_gold": 200,
+  "n_train_rows": 456,
+  "gold_distribution": {
+    "background": 159,
+    "uses-method": 3,
+    "uses-data": 2,
+    "extends": 1,
+    "compares-against": 4,
+    "supports": 2,
+    "contrasts": 29
+  },
+  "majority": {
+    "predicted_class": "background",
+    "accuracy": 0.795,
+    "macro_f1": 0.1265,
+    "per_class": {
+      "background": {
+        "precision": 0.795,
+        "recall": 1.0,
+        "f1": 0.8858,
+        "support": 159
+      },
+      "uses-method": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 3
+      },
+      "uses-data": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 2
+      },
+      "extends": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 1
+      },
+      "compares-against": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 4
+      },
+      "supports": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 2
+      },
+      "contrasts": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 29
+      }
+    },
+    "confusion": [
+      [
+        159,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        29,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "labels": [
+      "background",
+      "uses-method",
+      "uses-data",
+      "extends",
+      "compares-against",
+      "supports",
+      "contrasts"
+    ],
+    "n": 200
+  },
+  "tfidf_lr": {
+    "accuracy": 0.755,
+    "macro_f1": 0.2255,
+    "per_class": {
+      "background": {
+        "precision": 0.8161,
+        "recall": 0.8931,
+        "f1": 0.8529,
+        "support": 159
+      },
+      "uses-method": {
+        "precision": 0.2857,
+        "recall": 0.6667,
+        "f1": 0.4,
+        "support": 3
+      },
+      "uses-data": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 2
+      },
+      "extends": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 1
+      },
+      "compares-against": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 4
+      },
+      "supports": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 2
+      },
+      "contrasts": {
+        "precision": 0.5,
+        "recall": 0.2414,
+        "f1": 0.3256,
+        "support": 29
+      }
+    },
+    "confusion": [
+      [
+        142,
+        5,
+        0,
+        0,
+        0,
+        5,
+        7
+      ],
+      [
+        1,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        22,
+        0,
+        0,
+        0,
+        0,
+        0,
+        7
+      ]
+    ],
+    "labels": [
+      "background",
+      "uses-method",
+      "uses-data",
+      "extends",
+      "compares-against",
+      "supports",
+      "contrasts"
+    ],
+    "n": 200
+  },
+  "zero_shot_llm": {
+    "accuracy": 0.625,
+    "macro_f1": 0.3269,
+    "per_class": {
+      "background": {
+        "precision": 0.8889,
+        "recall": 0.6541,
+        "f1": 0.7536,
+        "support": 159
+      },
+      "uses-method": {
+        "precision": 0.1765,
+        "recall": 1.0,
+        "f1": 0.3,
+        "support": 3
+      },
+      "uses-data": {
+        "precision": 0.1429,
+        "recall": 1.0,
+        "f1": 0.25,
+        "support": 2
+      },
+      "extends": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 1
+      },
+      "compares-against": {
+        "precision": 0.2,
+        "recall": 0.75,
+        "f1": 0.3158,
+        "support": 4
+      },
+      "supports": {
+        "precision": 0.1176,
+        "recall": 1.0,
+        "f1": 0.2105,
+        "support": 2
+      },
+      "contrasts": {
+        "precision": 0.5789,
+        "recall": 0.3793,
+        "f1": 0.4583,
+        "support": 29
+      }
+    },
+    "confusion": [
+      [
+        104,
+        14,
+        12,
+        0,
+        7,
+        15,
+        7
+      ],
+      [
+        0,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        3,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        12,
+        0,
+        0,
+        1,
+        5,
+        0,
+        11
+      ]
+    ],
+    "labels": [
+      "background",
+      "uses-method",
+      "uses-data",
+      "extends",
+      "compares-against",
+      "supports",
+      "contrasts"
+    ],
+    "n": 200,
+    "cohen_kappa": 0.2744,
+    "note": "the labelling prompt applied zero-shot; identical prompt and model, scored against the same gold set"
+  },
+  "scibert": {
+    "accuracy": 0.795,
+    "macro_f1": 0.1265,
+    "per_class": {
+      "background": {
+        "precision": 0.795,
+        "recall": 1.0,
+        "f1": 0.8858,
+        "support": 159
+      },
+      "uses-method": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 3
+      },
+      "uses-data": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 2
+      },
+      "extends": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 1
+      },
+      "compares-against": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 4
+      },
+      "supports": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 2
+      },
+      "contrasts": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 29
+      }
+    },
+    "confusion": [
+      [
+        159,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        29,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "labels": [
+      "background",
+      "uses-method",
+      "uses-data",
+      "extends",
+      "compares-against",
+      "supports",
+      "contrasts"
+    ],
+    "n": 200
+  },
+  "usage": {
+    "overall": {
+      "calls": 186,
+      "failed": 49,
+      "prompt_tokens": 216413,
+      "completion_tokens": 66194,
+      "total_tokens": 282607,
+      "cost_usd": 0.0,
+      "latency_s_mean": 151.048,
+      "latency_s_total": 28095.0
+    },
+    "by_tag": {
+      "extract": {
+        "calls": 52,
+        "failed": 5,
+        "prompt_tokens": 58847,
+        "completion_tokens": 30307,
+        "total_tokens": 89154,
+        "cost_usd": 0.0,
+        "latency_s_mean": 442.123,
+        "latency_s_total": 22990.4
+      },
+      "probe": {
+        "calls": 7,
+        "failed": 0,
+        "prompt_tokens": 133,
+        "completion_tokens": 14,
+        "total_tokens": 147,
+        "cost_usd": 0.0,
+        "latency_s_mean": 0.362,
+        "latency_s_total": 2.5
+      },
+      "relation_labelling": {
+        "calls": 117,
+        "failed": 39,
+        "prompt_tokens": 151786,
+        "completion_tokens": 33380,
+        "total_tokens": 185166,
+        "cost_usd": 0.0,
+        "latency_s_mean": 0.843,
+        "latency_s_total": 98.6
+      },
+      "revise_review": {
+        "calls": 1,
+        "failed": 0,
+        "prompt_tokens": 815,
+        "completion_tokens": 96,
+        "total_tokens": 911,
+        "cost_usd": 0.0,
+        "latency_s_mean": 53.721,
+        "latency_s_total": 53.7
+      },
+      "write_review": {
+        "calls": 9,
+        "failed": 5,
+        "prompt_tokens": 4832,
+        "completion_tokens": 2397,
+        "total_tokens": 7229,
+        "cost_usd": 0.0,
+        "latency_s_mean": 549.969,
+        "latency_s_total": 4949.7
+      }
+    },
+    "by_model": {
+      "?": {
+        "calls": 49,
+        "failed": 49,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "cost_usd": 0.0,
+        "latency_s_mean": 0.117,
+        "latency_s_total": 5.7
+      },
+      "groq/qwen/qwen3.8-27b": {
+        "calls": 124,
+        "failed": 0,
+        "prompt_tokens": 206440,
+        "completion_tokens": 60670,
+        "total_tokens": 267110,
+        "cost_usd": 0.0,
+        "latency_s_mean": 1.418,
+        "latency_s_total": 175.8
+      },
+      "qwen2.5:7b": {
+        "calls": 13,
+        "failed": 0,
+        "prompt_tokens": 9973,
+        "completion_tokens": 5524,
+        "total_tokens": 15497,
+        "cost_usd": 0.0,
+        "latency_s_mean": 2147.191,
+        "latency_s_total": 27913.5
+      }
+    }
+  }
+}

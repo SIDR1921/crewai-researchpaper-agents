@@ -22,6 +22,13 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
+#: Body text metrics, in one place so the whole report can be tightened at once.
+#: 1.15 line spacing with a small space after each paragraph reads like a journal
+#: article rather than a double-spaced draft, and keeps the page count down.
+LINE_SPACING = 1.15
+SPACE_AFTER_PT = 3.0
+FIRST_LINE_INDENT_IN = 0.25
+
 WORD_UPDATE_HINT = ("Page numbers below are Word fields. They were filled in when this document was "
                     "rendered; if you edit the document, select all (Ctrl+A, or Cmd+A on macOS) "
                     "and press F9 to refresh them.")
@@ -149,8 +156,9 @@ def add_runs(par, text: str, *, size_pt: float, bold: bool = False, italic: bool
 
 
 def add_body_paragraph(anchor_par, text: str, like_par=None, *, size_pt: float = 12.0,
-                       justify: bool = True, first_line_indent: float | None = 0.3,
-                       space_after_pt: float = 6.0, bold: bool = False,
+                       justify: bool = True,
+                       first_line_indent: float | None = FIRST_LINE_INDENT_IN,
+                       space_after_pt: float = SPACE_AFTER_PT, bold: bool = False,
                        italic: bool = False, left_indent_in: float | None = None):
     """Body text after ``anchor_par``, inheriting the template's paragraph properties."""
     p = insert_after(anchor_par, like_par)
@@ -158,8 +166,8 @@ def add_body_paragraph(anchor_par, text: str, like_par=None, *, size_pt: float =
     if justify:
         pf.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     pf.space_after = Pt(space_after_pt)
-    pf.line_spacing = 1.25
-    pf.left_indent = Inches(left_indent_in) if left_indent_in is not None else Inches(0.25)
+    pf.line_spacing = LINE_SPACING
+    pf.left_indent = Inches(left_indent_in) if left_indent_in is not None else Inches(0)
     pf.first_line_indent = Inches(first_line_indent) if first_line_indent else Inches(0)
     add_runs(p, text, size_pt=size_pt, bold=bold, italic=italic)
     return p
@@ -190,10 +198,10 @@ def add_heading(anchor_par, text: str, *, size_pt: float = 12.0, like_par=None):
     p = insert_after(anchor_par, like_par)
     pf = p.paragraph_format
     pf.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    pf.space_before = Pt(10)
-    pf.space_after = Pt(4)
-    pf.line_spacing = 1.25
-    pf.left_indent = Inches(0.25)
+    pf.space_before = Pt(7)
+    pf.space_after = Pt(2)
+    pf.line_spacing = LINE_SPACING
+    pf.left_indent = Inches(0)
     pf.first_line_indent = Inches(0)
     r = p.add_run(text)
     r.bold = True
@@ -244,8 +252,9 @@ def add_image(anchor_par, image_path: str | Path, *, width_in: float = 5.8):
     pf.alignment = WD_ALIGN_PARAGRAPH.CENTER
     pf.first_line_indent = Inches(0)
     pf.left_indent = Inches(0)
-    pf.space_before = Pt(8)
-    pf.space_after = Pt(2)
+    pf.space_before = Pt(5)
+    pf.space_after = Pt(1)
+    pf.line_spacing = 1.0
     p.add_run().add_picture(str(image_path), width=Inches(width_in))
     return p
 
@@ -256,7 +265,8 @@ def add_caption(anchor_par, text: str, *, size_pt: float = 10.0):
     pf.alignment = WD_ALIGN_PARAGRAPH.CENTER
     pf.first_line_indent = Inches(0)
     pf.left_indent = Inches(0)
-    pf.space_after = Pt(10)
+    pf.space_after = Pt(7)
+    pf.line_spacing = 1.0
     r = p.add_run(text)
     r.font.size = Pt(size_pt)
     r.italic = True
@@ -332,8 +342,17 @@ def delete_paragraph(par) -> None:
 
 
 def page_break_before(par) -> None:
-    pf = par.paragraph_format
-    pf.page_break_before = True
+    """Start this paragraph on a new page, and only one new page.
+
+    The template already carries manual page-break characters inside some of its
+    headings. Setting the paragraph property as well gives two breaks and an
+    empty sheet between them, so any explicit break inside the paragraph is
+    removed first.
+    """
+    for br in par._element.findall(".//" + qn("w:br")):
+        if br.get(qn("w:type")) == "page":
+            br.getparent().remove(br)
+    par.paragraph_format.page_break_before = True
 
 
 # ------------------------------------------------------------------- numbering
@@ -403,3 +422,49 @@ def set_table_widths(table, widths_in: Sequence[float]) -> None:
                 continue
             seen.add(id(cell._tc))
             cell.width = Inches(w)
+
+
+def tighten(doc) -> dict:
+    """Remove the slack that turns into blank pages.
+
+    The template separates its sections with empty paragraphs. Once a heading
+    also starts a new page, those empties are pushed onto a page of their own and
+    the reader gets a sheet containing nothing but a page number. This drops any
+    empty paragraph that immediately precedes a page break, collapses runs of
+    more than one empty paragraph elsewhere, and removes trailing blanks at the
+    very end of the document.
+    """
+    removed = {"before_break": 0, "runs": 0, "trailing": 0}
+    paras = doc.paragraphs
+
+    def empty(p) -> bool:
+        return not p.text.strip() and not p._element.findall(
+            ".//{http://schemas.openxmlformats.org/drawingml/2006/main}blip")
+
+    for i, p in enumerate(paras):
+        if not p.paragraph_format.page_break_before:
+            continue
+        j = i - 1
+        while j >= 0 and empty(paras[j]):
+            delete_paragraph(paras[j])
+            removed["before_break"] += 1
+            j -= 1
+
+    paras = doc.paragraphs
+    run = 0
+    for p in list(paras):
+        if empty(p):
+            run += 1
+            if run > 1:
+                delete_paragraph(p)
+                removed["runs"] += 1
+        else:
+            run = 0
+
+    for p in reversed(doc.paragraphs):
+        if empty(p):
+            delete_paragraph(p)
+            removed["trailing"] += 1
+        else:
+            break
+    return removed

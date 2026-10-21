@@ -1,0 +1,24 @@
+{
+  "thresholds": {
+    "quote_min": 60.0,
+    "entail_supported": 0.7,
+    "entail_partial": 0.3
+  },
+  "nli_model": "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli",
+  "n_papers": 12,
+  "n_claims": 51,
+  "verdict_counts": {
+    "supported": 30,
+    "partially": 3,
+    "unsupported": 18
+  },
+  "verdict_rates": {
+    "supported": 0.5882,
+    "partially": 0.0588,
+    "unsupported": 0.3529
+  },
+  "quote_found_rate": 1.0,
+  "mean_quote_score": 99.96,
+  "mean_entail_prob": 0.629,
+  "fully_supported_papers": 3
+}

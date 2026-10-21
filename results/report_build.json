@@ -1,16 +1,23 @@
 {
   "out": "/Users/siddharth1921/Claude/litreview/report/LitReview_Report.docx",
-  "figures": 8,
+  "figures": 9,
   "tables": 4,
   "references": 40,
   "unresolved_citations": [],
-  "missing_figures": [],
+  "missing_figures": [
+    "fig_relation_confusion.png",
+    "fig_relation_models.png"
+  ],
   "unresolved_references": [],
-  "results_lookups_ok": 16,
+  "blank_space_removed": {
+    "before_break": 15,
+    "runs": 5,
+    "trailing": 1
+  },
+  "results_lookups_ok": 19,
   "results_lookups_missing": [
     "eval_arxiv.json (file absent)",
     "stage2_benchmark.json (file absent)",
-    "stage2_gold_agreement.json (file absent)",
     "stage3_verify_train_api.json (file absent)"
   ],
   "notes": [
@@ -19,7 +26,6 @@
     "Cover page: the template said \u201cIV SEMESTER\u201d. It is now the placeholder <SEMESTER> \u2014 replace it with your current semester.",
     "Cover page: the template said \u201cApril 2026\u201d; set to \u201cOctober 2026\u201d (the month this report was generated). Change it if your submission month differs.",
     "Abstract length: 281 words.",
-    "Chapter 4: Stage 2 classification not reported \u2014 results/stage2_benchmark.json is absent, so neither the LLM agreement nor the fine-tuned classifier can be reported.",
     "Chapter 4: Verifier calibration not reported \u2014 results/verifier_calibration.json is absent, so the thresholds in use are the hand-chosen defaults rather than fitted values, and the claim verdicts below should be read as uncalibrated.",
     "Chapter 4: Claim verification not reported \u2014 no results/stage3_verify_*.json file exists.",
     "Chapter 4: The end-to-end Flow run not reported \u2014 results/flow_summary.json is absent.",

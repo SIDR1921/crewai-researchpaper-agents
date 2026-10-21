@@ -1,0 +1,414 @@
+{
+  "n_dev_items": 48,
+  "nli_model": "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli",
+  "gold_distribution": {
+    "supported": 40,
+    "partially": 8,
+    "unsupported": 0
+  },
+  "thresholds": {
+    "quote_min": 60,
+    "entail_supported": 0.7,
+    "entail_partial": 0.3
+  },
+  "best_macro_f1": 0.488,
+  "best_accuracy": 0.5833,
+  "defaults_macro_f1": 0.3913,
+  "grid": [
+    {
+      "quote_min": 60,
+      "entail_supported": 0.7,
+      "entail_partial": 0.3,
+      "macro_f1": 0.488,
+      "accuracy": 0.5833
+    },
+    {
+      "quote_min": 60,
+      "entail_supported": 0.7,
+      "entail_partial": 0.4,
+      "macro_f1": 0.488,
+      "accuracy": 0.5833
+    },
+    {
+      "quote_min": 60,
+      "entail_supported": 0.8,
+      "entail_partial": 0.3,
+      "macro_f1": 0.488,
+      "accuracy": 0.5833
+    },
+    {
+      "quote_min": 60,
+      "entail_supported": 0.8,
+      "entail_partial": 0.4,
+      "macro_f1": 0.488,
+      "accuracy": 0.5833
+    },
+    {
+      "quote_min": 70,
+      "entail_supported": 0.7,
+      "entail_partial": 0.3,
+      "macro_f1": 0.488,
+      "accuracy": 0.5833
+    },
+    {
+      "quote_min": 70,
+      "entail_supported": 0.7,
+      "entail_partial": 0.4,
+      "macro_f1": 0.488,
+      "accuracy": 0.5833
+    },
+    {
+      "quote_min": 70,
+      "entail_supported": 0.8,
+      "entail_partial": 0.3,
+      "macro_f1": 0.488,
+      "accuracy": 0.5833
+    },
+    {
+      "quote_min": 70,
+      "entail_supported": 0.8,
+      "entail_partial": 0.4,
+      "macro_f1": 0.488,
+      "accuracy": 0.5833
+    },
+    {
+      "quote_min": 75,
+      "entail_supported": 0.7,
+      "entail_partial": 0.3,
+      "macro_f1": 0.488,
+      "accuracy": 0.5833
+    },
+    {
+      "quote_min": 75,
+      "entail_supported": 0.7,
+      "entail_partial": 0.4,
+      "macro_f1": 0.488,
+      "accuracy": 0.5833
+    },
+    {
+      "quote_min": 75,
+      "entail_supported": 0.8,
+      "entail_partial": 0.3,
+      "macro_f1": 0.488,
+      "accuracy": 0.5833
+    },
+    {
+      "quote_min": 75,
+      "entail_supported": 0.8,
+      "entail_partial": 0.4,
+      "macro_f1": 0.488,
+      "accuracy": 0.5833
+    },
+    {
+      "quote_min": 80,
+      "entail_supported": 0.7,
+      "entail_partial": 0.3,
+      "macro_f1": 0.488,
+      "accuracy": 0.5833
+    },
+    {
+      "quote_min": 80,
+      "entail_supported": 0.7,
+      "entail_partial": 0.4,
+      "macro_f1": 0.488,
+      "accuracy": 0.5833
+    },
+    {
+      "quote_min": 80,
+      "entail_supported": 0.8,
+      "entail_partial": 0.3,
+      "macro_f1": 0.488,
+      "accuracy": 0.5833
+    }
+  ],
+  "per_item": [
+    {
+      "claim": "The LA policy requires a relatively long computation time to obtain the longest common prefixes, especially when the source speech is divided into many small se",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9881
+    },
+    {
+      "claim": "ImplicitSLIM improves performance and speeds up convergence for both state of the art and classical collaborative filtering methods.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9938
+    },
+    {
+      "claim": "In verbal n-back tasks, the model's working memory capacity is around 3, as its detection sensitivity drops to around 1 when n=3.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.0073
+    },
+    {
+      "claim": "LLMs cannot currently substitute for comprehensive medical qualifications and human interactions.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9918
+    },
+    {
+      "claim": "ChatGPT has a working memory capacity limit strikingly similar to that of humans.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9915
+    },
+    {
+      "claim": "The dataset is the first for table entity linking in the scientific domain.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.5556
+    },
+    {
+      "claim": "Seeding the candidate set with entities from attributed papers significantly outperforms dense retrieval.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.0118
+    },
+    {
+      "claim": "The document class can be used to prepare articles for any ACM publication.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9931
+    },
+    {
+      "claim": "Code hallucinations are categorized into four main types: mapping, naming, resource, and logic hallucinations.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9947
+    },
+    {
+      "claim": "XML schemas lack semantic expressiveness, native support for automated reasoning, and a common framework for data integration.",
+      "human": "partially",
+      "quote_score": 100.0,
+      "entail_prob": 0.0048
+    },
+    {
+      "claim": "The top-performing model scores lower than at least half of the test takers in over 30% of PES specializations.",
+      "human": "partially",
+      "quote_score": 100.0,
+      "entail_prob": 0.0084
+    },
+    {
+      "claim": "The CodeHaluEval benchmark contains 8,883 samples from 699 tasks.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9949
+    },
+    {
+      "claim": "The proposed method outperforms the AxCell baseline in cell type classification.",
+      "human": "partially",
+      "quote_score": 100.0,
+      "entail_prob": 0.0025
+    },
+    {
+      "claim": "The template incorporates accessibility and metadata-extraction functionality.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.0767
+    },
+    {
+      "claim": "AlignBench has been adopted by major Chinese LLMs such as ChatGLM, Qwen, and DeepSeek for evaluating their alignment capabilities.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.992
+    },
+    {
+      "claim": "Adding ImplicitSLIM to nonlinear VAEs such as RecVAE and H+Vamp(Gated) improves state of the art results on the MovieLens-20M and Netflix Prize datasets.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9953
+    },
+    {
+      "claim": "The MMODS-O ontology is modularized with reusable modules and serialized in OWL.",
+      "human": "partially",
+      "quote_score": 100.0,
+      "entail_prob": 0.004
+    },
+    {
+      "claim": "The upgraded TTS module, which applied the Transformer architecture with the AlignAtt policy, contributed to improving the system performance.",
+      "human": "partially",
+      "quote_score": 100.0,
+      "entail_prob": 0.0006
+    },
+    {
+      "claim": "The acmart document class provides a consistent style for use across ACM publications.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.5256
+    },
+    {
+      "claim": "Adding noise significantly reduces the model's working memory capacity.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9938
+    },
+    {
+      "claim": "Most models pass the LEK exam but struggle with the LDEK exam.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9939
+    },
+    {
+      "claim": "Future developments in interpretability research must move from functionally-grounded evaluations to actionable insights and benefits for real-world tasks.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9889
+    },
+    {
+      "claim": "A multilingual automatic speech recognition system acts as a good initialization under low-resource scenarios.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9945
+    },
+    {
+      "claim": "The proposed rule-calibrated multi-dimensional LLM-as-Judge method achieves the best agreement with human judges compared to baselines.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.0182
+    },
+    {
+      "claim": "ImplicitSLIM can improve many existing models in terms of both performance and computational efficiency.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9945
+    },
+    {
+      "claim": "The paper categorizes LM interpretability approaches along two dimensions: localizing inputs or model components responsible for a prediction, and decoding info",
+      "human": "supported",
+      "quote_score": 98.7,
+      "entail_prob": 0.9375
+    },
+    {
+      "claim": "MDAgents achieved the highest accuracy in 7 out of 10 benchmarks, outperforming solo LLMs and static multi-agent methods.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9928
+    },
+    {
+      "claim": "The MMODS-O ontology incorporates all elements and attributes of the MODS XML schema.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9899
+    },
+    {
+      "claim": "A 3-agent configuration yielded optimal performance with significantly lower resource usage than single-agent or larger multi-agent setups.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9764
+    },
+    {
+      "claim": "LLaMA-2 exhibits significant memory bias when processing external knowledge and occasionally fabricates information.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.984
+    },
+    {
+      "claim": "The model has a lower working memory capacity in spatial n-back variants compared to their verbal counterparts.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.0077
+    },
+    {
+      "claim": "Previous NLP interpretability surveys primarily focused on encoder-based models like BERT, whereas this work focuses on decoder-only Transformers.",
+      "human": "partially",
+      "quote_score": 99.5,
+      "entail_prob": 0.9845
+    },
+    {
+      "claim": "The MODS XML schema has significant limitations for use in a knowledge graphs context.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.0861
+    },
+    {
+      "claim": "A significant portion of retrieval errors occurs because authors do not cite papers for referred concepts.",
+      "human": "supported",
+      "quote_score": 99.4,
+      "entail_prob": 0.1824
+    },
+    {
+      "claim": "General-purpose LLMs outperform medical-specific models in this benchmark.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.2339
+    },
+    {
+      "claim": "All evaluated methods demonstrate high performance on the System-level Pearson metric, indicating the reliability of the LLM-as-judge approach.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9219
+    },
+    {
+      "claim": "The paper provides a concise technical introduction to techniques used to interpret the inner workings of Transformer-based language models, focusing on the gen",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.8992
+    },
+    {
+      "claim": "GPT-4 possesses a working memory capacity that far exceeds that of other LLMs.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9933
+    },
+    {
+      "claim": "ImplicitSLIM allows extracting useful data from SLIM-like models without explicitly training SLIM itself.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9925
+    },
+    {
+      "claim": "Models perform significantly better on English questions than on Polish questions.",
+      "human": "partially",
+      "quote_score": 100.0,
+      "entail_prob": 0.0034
+    },
+    {
+      "claim": "The framework is more computationally efficient than static multi-agent methods, requiring fewer API calls to achieve the same accuracy.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.1019
+    },
+    {
+      "claim": "Using CTC as an additional objective for translation during training and decoding improves the final translation.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9902
+    },
+    {
+      "claim": "The benchmark includes 683 real-scenario rooted queries with human-verified references and evidences from reliable web sources.",
+      "human": "partially",
+      "quote_score": 100.0,
+      "entail_prob": 0.6943
+    },
+    {
+      "claim": "The submitted speech-to-text models employ the Local Agreement (LA) policy because it outperformed the AlignAtt policy in previous models.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.0013
+    },
+    {
+      "claim": "The proposed model achieved a 7.3 BLEU score on Tamasheq - French data, outperforming prior published works from IWSLT 2022 by 1.6 points.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9794
+    },
+    {
+      "claim": "The multilingual model trained on 300 hours of speech performs better than most of the French monolingual models trained on much larger data.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9963
+    },
+    {
+      "claim": "ImplicitSLIM achieves new state of the art results on classical datasets when applied to nonlinear autoencoder-based models.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.0074
+    },
+    {
+      "claim": "GPT-4 and GPT-3.5 demonstrate strong context sensitivity in identifying and following rules related to data types, values, and structures.",
+      "human": "supported",
+      "quote_score": 100.0,
+      "entail_prob": 0.9834
+    }
+  ]
+}

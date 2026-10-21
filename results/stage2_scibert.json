@@ -1,0 +1,198 @@
+{
+  "model_name": "allenai/scibert_scivocab_uncased",
+  "device": "cpu",
+  "epochs": 2,
+  "lr": 2e-05,
+  "batch_size": 16,
+  "max_len": 128,
+  "seed": 0,
+  "n_train_rows": 1024,
+  "n_dev_rows": 232,
+  "n_train_papers": 494,
+  "n_dev_papers": 87,
+  "train_label_counts": {
+    "background": 710,
+    "contrasts": 24,
+    "uses-method": 160,
+    "supports": 13,
+    "compares-against": 108,
+    "extends": 9
+  },
+  "class_weights": {
+    "background": 0.206,
+    "uses-method": 0.914,
+    "uses-data": 0.0,
+    "extends": 16.254,
+    "compares-against": 1.354,
+    "supports": 11.253,
+    "contrasts": 6.095
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 1.5155,
+      "dev_accuracy": 0.3664,
+      "dev_macro_f1": 0.2633
+    },
+    {
+      "epoch": 2,
+      "train_loss": 1.1315,
+      "dev_accuracy": 0.6767,
+      "dev_macro_f1": 0.3588
+    }
+  ],
+  "steps": 128,
+  "out_dir": "/Users/siddharth1921/Claude/litreview/models/scibert_relations",
+  "seed_corpora": {
+    "scicite": {
+      "available": true,
+      "n": 400,
+      "dropped": 0,
+      "mapping": {
+        "background": "background",
+        "method": "uses-method",
+        "result": "compares-against"
+      },
+      "limits": "SciCite's `method` class does not separate adopting a method from extending it, and its `result` class covers comparison, agreement and disagreement alike. Mapped rows are used only as extra training signal, never as evaluation gold.",
+      "citation": "Cohan, Ammar, van Zuylen & Cady (2019), Structural Scaffolds for Citation Intent Classification in Scientific Publications, NAACL."
+    },
+    "acl_arc": {
+      "available": true,
+      "n": 400,
+      "dropped": 60,
+      "mapping": {
+        "Background": "background",
+        "Uses": "uses-method",
+        "CompareOrContrast": "compares-against",
+        "Extends": "extends",
+        "Motivation": "background",
+        "Future": null
+      },
+      "limits": "ACL-ARC's `Uses` does not distinguish method from data, and `CompareOrContrast` merges neutral comparison with explicit disagreement. `Future` has no counterpart and is dropped.",
+      "citation": "Jurgens, Kumar, Hoover, McFarland & Jurafsky (2018), Measuring the Evolution of a Scientific Field through Citation Frames, TACL 6:391-406."
+    }
+  },
+  "gold_eval": {
+    "accuracy": 0.795,
+    "macro_f1": 0.1265,
+    "per_class": {
+      "background": {
+        "precision": 0.795,
+        "recall": 1.0,
+        "f1": 0.8858,
+        "support": 159
+      },
+      "uses-method": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 3
+      },
+      "uses-data": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 2
+      },
+      "extends": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 1
+      },
+      "compares-against": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 4
+      },
+      "supports": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 2
+      },
+      "contrasts": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 29
+      }
+    },
+    "confusion": [
+      [
+        159,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        29,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "labels": [
+      "background",
+      "uses-method",
+      "uses-data",
+      "extends",
+      "compares-against",
+      "supports",
+      "contrasts"
+    ],
+    "n": 200
+  }
+}

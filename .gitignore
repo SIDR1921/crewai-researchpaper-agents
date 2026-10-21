@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .env
 data/sources/
+data/cache/
 data/*.jsonl
 data/*.json
 .pytest_cache/
@@ -13,4 +14,5 @@ notebooks/.ipynb_checkpoints/
 
 # Colab bundle (rebuild with scripts/make_colab_bundle.py)
 litreview_colab.zip
+litreview_colab/
 ~$*

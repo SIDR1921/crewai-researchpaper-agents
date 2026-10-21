@@ -25,8 +25,8 @@ from docx.shared import Inches, Pt, RGBColor
 #: Body text metrics, in one place so the whole report can be tightened at once.
 #: 1.15 line spacing with a small space after each paragraph reads like a journal
 #: article rather than a double-spaced draft, and keeps the page count down.
-LINE_SPACING = 1.15
-SPACE_AFTER_PT = 3.0
+LINE_SPACING = 1.08
+SPACE_AFTER_PT = 2.5
 FIRST_LINE_INDENT_IN = 0.25
 
 WORD_UPDATE_HINT = ("Page numbers below are Word fields. They were filled in when this document was "
@@ -229,9 +229,9 @@ def add_table(doc, anchor_par, rows: Sequence[Sequence[str]], *, header: bool = 
             cell = cells[ci]
             cell.text = ""
             p = cell.paragraphs[0]
-            p.paragraph_format.space_after = Pt(1)
-            p.paragraph_format.space_before = Pt(1)
-            p.paragraph_format.line_spacing = 1.0
+            p.paragraph_format.space_after = Pt(0.5)
+            p.paragraph_format.space_before = Pt(0.5)
+            p.paragraph_format.line_spacing = 0.95
             if ci in align_right_cols and ri > 0:
                 p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.RIGHT
             r = p.add_run(txt)

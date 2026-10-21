@@ -231,7 +231,7 @@ class ReportBuilder:
         self.toc.append({"kind": kind, "number": number, "label": label, "bookmark": name})
         return name
 
-    def figure(self, anchor_par, filename: str, caption: str, width_in: float = 5.1):
+    def figure(self, anchor_par, filename: str, caption: str, width_in: float = 4.4):
         """Insert a figure with a numbered caption, or a visible note if it is missing."""
         path = self.figures / filename
         if not path.exists():
@@ -245,7 +245,7 @@ class ReportBuilder:
             return p
         item = self.fig.next(caption, source=filename)
         img = D.add_image(anchor_par, path, width_in=width_in)
-        cap = D.add_caption(img, f"{item['label']}: {caption}")
+        cap = D.add_caption(img, f"{item['label']}: {caption}", size_pt=9.5)
         D.add_bookmark(cap, item["bookmark"])
         return cap
 
@@ -571,18 +571,15 @@ class ReportBuilder:
 
         cur = D.add_heading(cur, "Summarising scientific papers")
         cur = D.add_paragraphs(cur, [
-            f"Summarising a single document improved in two steps. First came models that "
-            f"could copy rare words straight out of the source instead of trying to spell them "
-            f"{C('Get To The Point')}. Then came large models pre-trained on a general "
-            f"text-repair task and adapted to summarising, of which BART {C('BART')} and "
-            f"PEGASUS {C('PEGASUS')} are still the usual points of comparison.",
-            f"Scientific papers broke an assumption these models relied on, which is that a "
-            f"document fits inside the model at once. Cohan and colleagues "
-            f"{C('A Discourse-Aware Attention Model')} handled longer documents by paying "
-            f"attention to section structure, and released the arXiv and PubMed datasets that "
-            f"made long-document summarising a standard task. The XSum dataset "
-            f"{C('Just the Summary')} pushed the other way, asking for a single sentence that "
-            f"cannot be produced by copying.",
+            f"Summarising a single document improved in two steps: models that could copy "
+            f"rare words straight out of the source {C('Get To The Point')}, then large "
+            f"pre-trained models adapted to the task, of which BART {C('BART')} and PEGASUS "
+            f"{C('PEGASUS')} remain the usual points of comparison. Scientific papers broke "
+            f"the assumption that a document fits inside the model at once: Cohan and "
+            f"colleagues {C('A Discourse-Aware Attention Model')} handled longer documents by "
+            f"attending to section structure and released the arXiv and PubMed datasets, while "
+            f"XSum {C('Just the Summary')} pushed the other way, asking for a single sentence "
+            f"that cannot be produced by copying.",
             f"Writing a related-work section is the specific task this project is tested on, "
             f"and it is older than today's models. Abu-Ra'ed and colleagues "
             f"{C('Automatic related work section generation')} treated it as summarising the "
@@ -663,21 +660,20 @@ class ReportBuilder:
         cur = D.add_heading(cur, "Teams of language-model agents")
         cur = D.add_paragraphs(cur, [
             f"Asking a model to work through a problem in steps was the first sign that "
-            f"breaking a task up helps {C('Chain-Of-Thought Prompting')}, and giving a model "
-            f"tools let it act outside its own text {C('Toolformer')}. Several agents working "
-            f"together followed: CAMEL {C('CAMEL')} showed that agents given roles and allowed "
-            f"to talk can carry a task further than one prompt, and generative agents "
-            f"{C('Generative Agents')} showed memory and planning over long runs. Having a "
-            f"model criticise and fix its own work was formalised as Self-Refine "
-            f"{C('Self-Refine')} and, with a separate critic, as Reflexion {C('Reflexion')}.",
-            "CrewAI, the framework used here, belongs to this family. It provides agents with "
-            "a role, a goal and a list of tools; tasks whose output can be forced into a fixed "
-            "shape; and flows that connect steps with explicit order and shared state. Two of "
-            "its features carry real weight in this project. Forcing a task's output into a "
-            "fixed data shape is what lets the Extractor be checked by code rather than read "
-            "by eye. Named flow steps are what let the human approval point be a real stop, "
-            "and let a run that is interrupted carry on where it left off \u2014 which matters "
-            "when everything has to fit inside a free account's limits.",
+            f"breaking a task up helps {C('Chain-Of-Thought Prompting')}, and tools let a "
+            f"model act outside its own text {C('Toolformer')}. Several agents working "
+            f"together followed: CAMEL {C('CAMEL')} showed that agents given roles can carry a "
+            f"task further than one prompt, and generative agents {C('Generative Agents')} "
+            f"showed memory and planning over long runs. Self-criticism was formalised as "
+            f"Self-Refine {C('Self-Refine')} and, with a separate critic, as Reflexion "
+            f"{C('Reflexion')}.",
+            "CrewAI belongs to this family: agents with a role, a goal and tools; tasks whose "
+            "output can be forced into a fixed shape; and flows that connect steps with "
+            "explicit order and shared state. Two features carry real weight here. A fixed "
+            "output shape is what lets the Extractor be checked by code rather than read by "
+            "eye. Named flow steps let the human approval point be a real stop, and let an "
+            "interrupted run carry on \u2014 which matters when everything must fit inside a "
+            "free account's limits.",
             "The important lesson from this literature, for this project, is that a model "
             "checking its own work is using the same model that produced it, and its judgement "
             "is tied to the error that caused the problem. The checker here is therefore not "
@@ -796,13 +792,13 @@ class ReportBuilder:
 
     # --------------------------------------------------------------- chapter 3
 
-    def equation(self, anchor_par, tex: str, number: str, width_in: float = 5.4):
+    def equation(self, anchor_par, tex: str, number: str, width_in: float = 4.3):
         """Render a display equation (mathtext) with its number, and insert it centred."""
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
         out = self.figures / f"eq_{number.replace('.', '_')}.png"
-        fig = plt.figure(figsize=(width_in, 0.52), dpi=300)
+        fig = plt.figure(figsize=(width_in, 0.42), dpi=300)
         fig.text(0.47, 0.5, tex, ha="center", va="center", fontsize=12, color="#1f2933")
         fig.text(0.985, 0.5, f"({number})", ha="right", va="center", fontsize=10,
                  color="#1f2933")
@@ -848,17 +844,14 @@ class ReportBuilder:
                           "and restarted.")
         cur = D.add_paragraphs(cur, [
             "arXiv distributes most papers as LaTeX source, which is readable text rather "
-            "than a PDF. The parser handles the awkward cases, each of which showed up in a "
-            "real paper during testing and each of which now has a test: papers with more "
-            "than one main file, related work written as a sub-section or as a run of "
-            "unnamed paragraphs rather than its own section, two different bibliography "
-            "formats, a bibliography written directly into the main file, and the various "
-            "citation commands used by different publishers.",
-            "A heading on its own is not treated as proof that a section is a literature "
-            "review. A section actually titled \u201cRelated Work\u201d must contain at least "
-            "one citation, and a vaguer heading such as \u201cBackground\u201d must contain at "
-            "least two. Without that rule a section explaining standard theory would be mined "
-            "as though it were a survey.",
+            "than a PDF. The parser handles the awkward cases, each found in a real paper "
+            "during testing and each now covered by a test: several candidate main files, "
+            "related work written as a sub-section or as a run of unnamed paragraphs, two "
+            "bibliography formats, a bibliography written into the main file, and the citation "
+            "commands used by different publishers. A heading alone is not accepted as proof: "
+            "a section titled \u201cRelated Work\u201d must contain at least one citation and a "
+            "vaguer heading such as \u201cBackground\u201d at least two, or a section explaining "
+            "standard theory would be mined as though it were a survey.",
             "Cited papers then have to be identified. Where the bibliography gives a DOI or an "
             "arXiv number, that number identifies the paper exactly, and those are looked up "
             "in batches. Only where no identifier exists does the system fall back to "
@@ -901,7 +894,7 @@ class ReportBuilder:
             "would let the model see the answer. Rare labels are weighted more heavily so they "
             "can be learned at all:",
         ])
-        cur = self.equation(cur, r"$w_c \;=\; \dfrac{N}{K\,n_c}$", "3.1", width_in=3.2)
+        cur = self.equation(cur, r"$w_c \;=\; \dfrac{N}{K\,n_c}$", "3.1", width_in=2.6)
         cur = D.add_paragraphs(cur, [
             "where N is the number of training sentences, K the number of labels and n\u27e8c\u27e9 "
             "how many times label c appears. Results are reported as macro-F1, which averages "
@@ -962,7 +955,7 @@ class ReportBuilder:
         cur = self.equation(
             cur, r"$\mathrm{Faith} \;=\; \frac{1}{|S|}\sum_{s \in S}"
                  r"\mathbb{1}\!\left[\max_{e \in E(s)} P_{\mathrm{ent}}(s \mid e) "
-                 r"\geq \tau_{\mathrm{sup}}\right]$", "3.4", width_in=5.0)
+                 r"\geq \tau_{\mathrm{sup}}\right]$", "3.4", width_in=4.3)
         cur = D.add_paragraphs(cur, [
             "where E(s) is the set of quoted lines behind sentence s and \u03c4\u27e8sup\u27e9 is "
             "the chosen threshold. A sentence that cites nothing has no evidence and so counts "
@@ -1054,7 +1047,7 @@ class ReportBuilder:
         ])
         cur = self.equation(
             cur, r"$\mathrm{CI}_{95} = \left[\hat{\theta}^{*}_{(0.025B)},\;"
-                 r"\hat{\theta}^{*}_{(0.975B)}\right],\quad B = 2000$", "3.5", width_in=4.4)
+                 r"\hat{\theta}^{*}_{(0.975B)}\right],\quad B = 2000$", "3.5", width_in=4.3)
         cur = D.add_paragraphs(cur, [
             "which means the test set is resampled two thousand times and the range covering "
             "the middle 95% of the resulting averages is reported. At the sample sizes used "
@@ -1083,7 +1076,7 @@ class ReportBuilder:
         cur = self.figure(cur, "fig_console_overview.png",
                           "The console's overview. Each step shows real figures from the file "
                           "it wrote, and a step that has not run is marked pending instead of "
-                          "being filled in with a guess.", width_in=4.9)
+                          "being filled in with a guess.", width_in=4.4)
         cur = D.add_paragraphs(cur, [
             "The most useful view is the test set itself, in {{FIG:fig_console_benchmark.png}}. Opening a paper shows "
             "the related-work section its author actually wrote, which is hidden from every "
@@ -1096,7 +1089,7 @@ class ReportBuilder:
                           "A test example in the console: the section the author wrote, above "
                           "the cited papers' abstracts that are the only input a system is "
                           "given. Greyed-out entries are references whose abstract could not "
-                          "be retrieved.", width_in=4.9)
+                          "be retrieved.", width_in=4.4)
         cur = D.add_paragraphs(cur, [
             "A third view shows a generated review one sentence at a time. Clicking a sentence "
             "shows the quoted line it was checked against and the score it received, and "
@@ -1787,7 +1780,7 @@ class ReportBuilder:
                               "The worked example in the console. Sentences are underlined by "
                               "outcome, and selecting one shows the paper it cites, the "
                               "closest supporting line, and the score. Here every sentence is "
-                              "unsupported.", width_in=5.2)
+                              "unsupported.", width_in=4.6)
             cur = D.add_paragraphs(cur, [
                 f"Two things about this run should be kept in mind when reading the number. "
                 f"It used {model_name}"
@@ -1809,49 +1802,34 @@ class ReportBuilder:
 
         cur = D.add_heading(cur, "4.8  Limitations and threats to validity")
         cur = D.add_bullets(cur, [
-            "Small runs. Everything here was run at a size that fits on one laptop and inside "
-            "a free API account. The confidence ranges are correspondingly wide, and no claim "
-            "is made that one system beats another where those ranges overlap.",
-            "The classifier learns from machine labels. The citation classifier is trained on "
-            "labels a language model produced, not a person. Section 4.2 measures how far "
-            "those labels can be trusted, and the classifier cannot be better than its teacher "
-            "on the labels the teacher gets wrong.",
+            "Small runs. Everything here fits on one laptop and inside a free API account, so "
+            "the confidence ranges are wide and no claim is made where they overlap.",
+            "The classifier learns from machine labels, and Section 4.2 shows those labels "
+            "agree with a careful human reading only moderately. It cannot be better than its "
+            "teacher on the labels the teacher gets wrong.",
             "Who produced the gold labels. The hand-checked sets were labelled by the AI "
-            "assistant that built the pipeline, following the written guide and blind to the "
-            "labeller's output, then reviewed by the author. That is an independent second "
-            "opinion rather than expert human annotation. If the guide itself is misleading, "
-            "it would mislead the labeller and the gold set in the same direction, and with "
-            "one annotator there is no way to measure that. Replacing these with "
-            "independently sourced human labels is the first item in Section 5.2.",
-            "The checking model has its own weaknesses. It is unreliable on statements "
-            "involving numbers and quantities, which is exactly what many scientific claims "
-            "turn on, and it treats cautious wording inconsistently. A claim marked "
-            "unsupported is a sign that something needs looking at, not proof that it is "
-            "wrong.",
-            "Matching a quote is not the same as proving provenance. The check confirms that "
-            "a line resembling the quote appears in the text given to the extractor. It does "
-            "not confirm that the line means in context what the claim says it means, and a "
-            "short generic line can match in several places.",
-            "The date separation is partial. The section being scored was published after "
-            "every tested model's cut-off, but the papers it cites are necessarily older and "
-            "were probably in those models' training data. Familiarity with the subject may "
-            "therefore help a model even though it has not seen the answer.",
-            "The test set is not a random sample of research. Only papers with readable "
-            "source, an identifiable related-work section and most of their references "
-            "findable survive. That favours conventionally structured papers from authors who "
-            "publish their source files.",
-            "There is only one correct answer in the test set. Many different related-work "
-            "sections would be reasonable for the same set of cited papers, and only the one "
-            "the original author wrote is available. This is why the grounding measures are "
-            "reported next to the overlap scores rather than underneath them.",
-            "Name tidying is incomplete. Dataset, metric and method names are merged using a "
-            "known-alternatives list plus approximate matching; anything unmatched keeps its "
-            "original form, so one group of results can end up split in two and a "
-            "disagreement between papers missed as a result.",
-            "One provider, one run. Every system used the same model and settings, which makes "
-            "the comparison fair but says nothing about whether the conclusions hold for a "
-            "different model. Each configuration was run once, so run-to-run variation is not "
-            "measured.",
+            "assistant that built the pipeline, blind to the labeller's output and following "
+            "the written guide, then reviewed by the author. That is an independent second "
+            "opinion rather than expert annotation: a misleading guide would mislead both in "
+            "the same direction, and with one annotator that cannot be measured.",
+            "The checking model is unreliable on numbers and quantities, which is what many "
+            "scientific claims turn on, and treats cautious wording inconsistently. A claim "
+            "marked unsupported is a sign to look, not proof of error \u2014 on the "
+            "hand-checked sample it was markedly stricter than the human reader.",
+            "Matching a quote is not proving provenance. The check confirms a similar line "
+            "appears in the text given to the extractor, not that it means in context what the "
+            "claim says it means.",
+            "The date separation is partial. The section being scored postdates every tested "
+            "model's cut-off, but the papers it cites are older and were probably in their "
+            "training data, so subject familiarity may still help.",
+            "The test set favours conventionally structured papers whose authors publish "
+            "source files and whose references are findable, so it is not a random sample of "
+            "research. Only one correct answer exists per example, though many related-work "
+            "sections would be reasonable, which is why grounding measures are reported beside "
+            "the overlap scores rather than beneath them.",
+            "Name tidying is incomplete, so one group of results can end up split in two and a "
+            "disagreement missed. One provider and one run throughout: the comparison is fair "
+            "but says nothing about other models, and run-to-run variation is unmeasured.",
         ])
 
     # ------------------------------------------------- chapter 4 helper prose
@@ -2148,35 +2126,29 @@ class ReportBuilder:
                                  "conclusions.")
         anchor2 = self.doc.paragraphs[self.anchor("Suggestions for future directions")[0] + 1]
         D.add_bullets(anchor2, [
-            "Scale the pilot. Every number in Chapter 4 comes from a pilot sized to run on one "
-            "laptop. The notebooks are written for the full configuration (roughly 3,000 "
-            "training and 300 test papers, 5,000 labelled contexts); running them would narrow "
-            "the intervals enough for the system comparison to be decidable rather than "
-            "suggestive.",
-            "Replace LLM labels with human ones where they matter. The relation classifier is "
-            "limited by its teacher on exactly the rare classes the contradiction map depends "
-            "on. A few hundred human labels concentrated on contrasts and supports would be "
-            "worth more than ten thousand more LLM labels.",
-            "Measure inter-annotator agreement. The gold set, the Verifier's dev set and the "
-            "contradiction spot checks each had one annotator. A second annotator on a subset "
-            "would turn the labelling guide from an assertion into something testable.",
-            "Train the Verifier rather than only calibrating it. Thresholds on an off-the-shelf "
-            "NLI model are a blunt instrument, and the model is weakest on the numerical "
-            "entailment that scientific claims turn on. Fine-tuning an entailment model on "
-            "claim/evidence pairs from this domain is the obvious next component.",
-            "Extract from full text rather than from abstracts. When the Flow runs on an "
-            "OpenAlex corpus it sees only abstracts, which is why the relation classifier "
-            "contributes little there: there are no in-corpus citation sentences to classify. "
-            "Resolving corpus papers to their arXiv sources would let the typed citation graph "
-            "be built from real citation contexts.",
-            "Complete and then stress the distillation. Component B is a Colab-T4 job; beyond "
-            "running it, the question worth asking is whether a student trained only on "
-            "Verifier-approved data generalises better than one trained on everything, which is "
-            "a controlled experiment this codebase can already run.",
-            "Attempt component C. Fine-tuning a related-work generator directly on the mined "
-            "(cited abstracts → section) pairs was left as a stretch goal. It should be gated "
-            "through the same Verifier, so that a model trained to imitate human sections is "
-            "still held to the grounding standard the rest of the system enforces.",
+            "Scale the runs. Every number in Chapter 4 comes from a pilot sized for one "
+            "laptop. The notebooks are written for roughly 3,000 training and 300 test papers "
+            "and 5,000 labelled sentences; at that size the system comparison would be "
+            "decidable rather than suggestive.",
+            "Replace machine labels with human ones where they matter. Section 4.2 shows the "
+            "classifier reproduces the majority class because its training labels disagree "
+            "with a careful reading exactly at the boundary that matters. A few hundred human "
+            "labels concentrated on contrasts and supports would be worth more than ten "
+            "thousand more machine labels, and a second annotator would turn the labelling "
+            "guide from an assertion into something testable.",
+            "Train the checker rather than only calibrating it. Thresholds on an off-the-shelf "
+            "inference model are blunt, and it is weakest on the numerical statements "
+            "scientific claims turn on. Fine-tuning it on claim-and-quote pairs from this "
+            "domain is the obvious next component.",
+            "Extract from full text rather than abstracts. When the pipeline runs on a search "
+            "result it sees only abstracts, so there are no in-corpus citation sentences to "
+            "classify. Resolving those papers to their arXiv sources would let the typed "
+            "citation graph be built from real citing sentences.",
+            "Finish the distillation and then stress it. Beyond running it, the question worth "
+            "asking is whether a model trained only on checker-approved data generalises "
+            "better than one trained on everything \u2014 a controlled experiment this codebase "
+            "can already run. Training a related-work generator directly on the mined pairs "
+            "remains a further step, and should be gated through the same checker.",
         ], numbered=True)
 
     # -------------------------------------------------------------- references
@@ -2190,9 +2162,10 @@ class ReportBuilder:
         entries = self.refs.bibliography()
         cur = jc
         for e in entries:
-            cur = D.add_body_paragraph(cur, e, size_pt=11, first_line_indent=None,
-                                       left_indent_in=0.45, space_after_pt=4)
-            cur.paragraph_format.first_line_indent = Inches(-0.3)
+            cur = D.add_body_paragraph(cur, e, size_pt=10, first_line_indent=None,
+                                       left_indent_in=0.35, space_after_pt=1)
+            cur.paragraph_format.first_line_indent = Inches(-0.28)
+            cur.paragraph_format.line_spacing = 1.0
 
         try:
             _, bk = self.anchor("Reference / Hand Books")
@@ -2223,9 +2196,10 @@ class ReportBuilder:
                 ("Multi-XScience dataset repository",
                  "https://github.com/yaolu/Multi-XScience"),
             ], 1):
-                cur = D.add_body_paragraph(cur, f"[{i}] {label}, {url}", size_pt=11,
-                                           first_line_indent=None, left_indent_in=0.45,
-                                           space_after_pt=3)
+                cur = D.add_body_paragraph(cur, f"[{i}] {label}, {url}", size_pt=10,
+                                           first_line_indent=None, left_indent_in=0.35,
+                                           space_after_pt=1)
+                cur.paragraph_format.line_spacing = 1.0
         except KeyError:
             pass
 
@@ -2260,14 +2234,14 @@ class ReportBuilder:
         def toc_row(left: str, number: str, label: str, bookmark: str | None,
                     bold: bool = False, page_text: str = "") -> None:
             cells = toc.add_row().cells
-            D.set_cell(cells[0], left, bold=bold, size_pt=10)
-            D.set_cell(cells[1], number, bold=bold, size_pt=10)
+            D.set_cell(cells[0], left, bold=bold, size_pt=9.5)
+            D.set_cell(cells[1], number, bold=bold, size_pt=9.5)
             try:
                 mid = cells[2].merge(cells[4])
             except (IndexError, Exception):            # noqa: B014 - layout varies
                 mid = cells[2]
-            D.set_cell(mid, label, bold=bold, size_pt=10)
-            D.set_cell(cells[-1], page_text, size_pt=10, align=A.RIGHT,
+            D.set_cell(mid, label, bold=bold, size_pt=9.5)
+            D.set_cell(cells[-1], page_text, size_pt=9.5, align=A.RIGHT,
                        bookmark_ref=bookmark)
 
         toc_row("", "", "", None, bold=True, page_text="")
@@ -2294,8 +2268,8 @@ class ReportBuilder:
             D.set_cell(hdr[2], "Page No", bold=True, size_pt=10, align=A.RIGHT)
             for item in counter.items:
                 cells = tbl.add_row().cells
-                D.set_cell(cells[0], item["label"], size_pt=10)
-                D.set_cell(cells[1], item.get("short") or item["caption"][:170], size_pt=10)
+                D.set_cell(cells[0], item["label"], size_pt=9.5)
+                D.set_cell(cells[1], item.get("short") or item["caption"][:170], size_pt=9.5)
                 D.set_cell(cells[2], "", size_pt=10, align=A.RIGHT,
                            bookmark_ref=item["bookmark"])
             if not counter.items:

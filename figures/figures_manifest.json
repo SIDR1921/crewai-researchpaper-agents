@@ -9,13 +9,14 @@
       "file": "fig_dataset_stats.png",
       "caption": "Distribution of related-work length, number of cited papers and abstract coverage.",
       "source": "results/stage1_dataset_stats.json"
+    },
+    {
+      "file": "fig_label_distribution.png",
+      "caption": "Distribution of LLM-assigned citation relations over the labelled pool.",
+      "source": "results/stage2_labelling.json"
     }
   ],
   "skipped": [
-    {
-      "file": "fig_label_distribution.png",
-      "reason": "results/stage2_labelling.json missing"
-    },
     {
       "file": "fig_relation_confusion.png",
       "reason": "no confusion matrix in results/stage2_*.json"

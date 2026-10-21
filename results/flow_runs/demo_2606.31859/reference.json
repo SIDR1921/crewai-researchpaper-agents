@@ -1,0 +1,23 @@
+{
+  "arxiv_id": "2606.31859",
+  "title": "Review Residuals: Update-Conditioned Residual Gating for Transformers",
+  "rw_text": "Methods that modulate the residual update fall into two groups. Static methods scale the update by a\nlearned scalar or per-channel factor that does not depend on the input: ReZero\u00a0 [CITE:bachlechner2021],\nFixup\u00a0 [CITE:zhang2019fixup], DeepNorm\u00a0 [CITE:wang2022deepnet], and LayerScale\u00a0 [CITE:touvron2021].\nInput-dependent methods compute the modulation from the activations: Highway\u00a0 [CITE:srivastava2015] gates\non the state, and Attention Residuals\u00a0 [CITE:kimi2026] aggregate across depth with softmax attention. Review\nResiduals are an input-dependent scaling of the update\u2014closest in form to LayerScale, but learned and\nconditioned on the update itself (Table\u00a0). A parallel line makes the amount of computation\nconditional (adaptive computation time\u00a0 [CITE:graves2016], PonderNet\u00a0 [CITE:banino2021],\nmixture-of-experts\u00a0 [CITE:shazeer2017], mixture-of-depths\u00a0 [CITE:raposo2024]); Review Residuals instead keep\ndepth and width fixed and learn how much to trust each update.",
+  "cited": [
+    {
+      "cite_key": "bachlechner2021",
+      "title": "T.~Bachlechner et al. ReZero is All You Need. UAI, 2021"
+    },
+    {
+      "cite_key": "banino2021",
+      "title": "A.~Banino, J.~Balaguer, C.~Blundell. PonderNet: Learning to Ponder"
+    },
+    {
+      "cite_key": "graves2016",
+      "title": "A.~Graves. Adaptive Computation Time for Recurrent Neural Networks"
+    },
+    {
+      "cite_key": "kimi2026",
+      "title": "Kimi Team. Attention Residuals"
+    }
+  ]
+}

@@ -1,0 +1,246 @@
+[
+  {
+    "paper_id": "bachlechner2021",
+    "title": "T.~Bachlechner et al. ReZero is All You Need. UAI, 2021",
+    "year": 2020,
+    "task": "Improving deep learning efficiency",
+    "methods": [
+      "ReZero"
+    ],
+    "datasets": [
+      "CIFAR-10",
+      "enwiki8"
+    ],
+    "metrics": [
+      {
+        "name": "Test performance",
+        "value": null,
+        "setting": "CIFAR-10",
+        "higher_is_better": true
+      }
+    ],
+    "claims": [
+      {
+        "claim_id": "c1",
+        "text": "We show that the simplest architecture change of gating each residual connection using a single zero-initialized parameter satisfies initial dynamical isometry and outperforms more complex approaches.",
+        "type": "finding",
+        "evidence": {
+          "section": "abstract",
+          "passage": "We show that the simplest architecture change of gating each residual connection using a single zero-initialized parameter satisfies initial dynamical isometry and outperforms more complex approaches."
+        }
+      },
+      {
+        "claim_id": "c2",
+        "text": "This gate enables training thousands of fully connected layers with fast convergence and better test performance for ResNets trained on CIFAR-10.",
+        "type": "finding",
+        "evidence": {
+          "section": "abstract",
+          "passage": "This gate enables training thousands of fully connected layers with fast convergence and better test performance for ResNets trained on CIFAR-10."
+        }
+      },
+      {
+        "claim_id": "c3",
+        "text": "When applied to 12 layer Transformers, it converges 56% faster on enwiki8.",
+        "type": "finding",
+        "evidence": {
+          "section": "abstract",
+          "passage": "When applied to 12 layer Transformers, it converges 56% faster on enwiki8."
+        }
+      }
+    ],
+    "limitations": [
+      "none explicitly stated in the provided text"
+    ],
+    "methods_norm": [
+      "ReZero"
+    ],
+    "datasets_norm": [
+      "CIFAR-10",
+      "enwiki8"
+    ],
+    "task_norm": "Improving deep learning efficiency",
+    "method_families": [
+      "Other"
+    ],
+    "metrics_norm": [
+      {
+        "name": "Test performance",
+        "value": null,
+        "setting": "CIFAR-10",
+        "higher_is_better": true,
+        "name_norm": "Test performance",
+        "setting_dataset": "CIFAR-10"
+      }
+    ],
+    "_input_text": "[abstract]\nDeep networks often suffer from vanishing or exploding gradients due to inefficient signal propagation, leading to long training times or convergence difficulties. Various architecture designs, sophisticated residual-style networks, and initialization schemes have been shown to improve deep signal propagation. Recently, Pennington et al. used free probability theory to show that dynamical isometry plays an integral role in efficient deep learning. We show that the simplest architecture change of gating each residual connection using a single zero-initialized parameter satisfies initial dynamical isometry and outperforms more complex approaches. Although much simpler than its predecessors, this gate enables training thousands of fully connected layers with fast convergence and better test performance for ResNets trained on CIFAR-10. We apply this technique to language modeling and find that we can easily train 120-layer Transformers. When applied to 12 layer Transformers, it converges 56% faster on enwiki8."
+  },
+  {
+    "paper_id": "banino2021",
+    "title": "A.~Banino, J.~Balaguer, C.~Blundell. PonderNet: Learning to Ponder",
+    "year": 2021,
+    "task": "Learning to adapt computation based on problem complexity",
+    "methods": [
+      "PonderNet"
+    ],
+    "datasets": [
+      "a real world question and answering dataset",
+      "a complex task designed to test the reasoning capabilities of neural networks"
+    ],
+    "metrics": [],
+    "claims": [
+      {
+        "claim_id": "c1",
+        "text": "PonderNet dramatically improves performance over previous adaptive computation methods and additionally succeeds at extrapolation tests where traditional neural networks fail.",
+        "type": "finding",
+        "evidence": {
+          "section": "abstract",
+          "passage": "PonderNet dramatically improves performance over previous adaptive computation methods and additionally succeeds at extrapolation tests where traditional neural networks fail."
+        }
+      },
+      {
+        "claim_id": "c2",
+        "text": "Our method matched the current state of the art results on a real world question and answering dataset, but using less compute.",
+        "type": "finding",
+        "evidence": {
+          "section": "abstract",
+          "passage": "Also, our method matched the current state of the art results on a real world question and answering dataset, but using less compute."
+        }
+      },
+      {
+        "claim_id": "c3",
+        "text": "PonderNet reached state of the art results on a complex task designed to test the reasoning capabilities of neural networks.",
+        "type": "finding",
+        "evidence": {
+          "section": "abstract",
+          "passage": "Finally, PonderNet reached state of the art results on a complex task designed to test the reasoning capabilities of neural networks."
+        }
+      }
+    ],
+    "limitations": [],
+    "methods_norm": [
+      "PonderNet"
+    ],
+    "datasets_norm": [
+      "a real world question and answering dataset",
+      "a complex task designed to test the reasoning capabilities of neural networks"
+    ],
+    "task_norm": "Learning to adapt computation based on problem complexity",
+    "method_families": [
+      "Other"
+    ],
+    "metrics_norm": [],
+    "_input_text": "[abstract]\nIn standard neural networks the amount of computation used grows with the size of the inputs, but not with the complexity of the problem being learnt. To overcome this limitation we introduce PonderNet, a new algorithm that learns to adapt the amount of computation based on the complexity of the problem at hand. PonderNet learns end-to-end the number of computational steps to achieve an effective compromise between training prediction accuracy, computational cost and generalization. On a complex synthetic problem, PonderNet dramatically improves performance over previous adaptive computation methods and additionally succeeds at extrapolation tests where traditional neural networks fail. Also, our method matched the current state of the art results on a real world question and answering dataset, but using less compute. Finally, PonderNet reached state of the art results on a complex task designed to test the reasoning capabilities of neural networks.1"
+  },
+  {
+    "paper_id": "graves2016",
+    "title": "A.~Graves. Adaptive Computation Time for Recurrent Neural Networks",
+    "year": 2016,
+    "task": "Improving performance of recurrent neural networks",
+    "methods": [
+      "Adaptive Computation Time (ACT)"
+    ],
+    "datasets": [
+      "Hutter prize Wikipedia dataset"
+    ],
+    "metrics": [],
+    "claims": [
+      {
+        "claim_id": "c1",
+        "text": "Overall, performance is dramatically improved by the use of ACT, which successfully adapts the number of computational steps to the requirements of the problem.",
+        "type": "finding",
+        "evidence": {
+          "section": "abstract",
+          "passage": "Overall, performance is dramatically improved by the use of ACT, which successfully adapts the number of computational steps to the requirements of the problem."
+        }
+      },
+      {
+        "claim_id": "c2",
+        "text": "ACT does not yield large gains in performance on the Hutter prize Wikipedia dataset.",
+        "type": "finding",
+        "evidence": {
+          "section": "abstract",
+          "passage": "In this case ACT does not yield large gains in performance;"
+        }
+      },
+      {
+        "claim_id": "c3",
+        "text": "ACT provides intriguing insight into the structure of the data, with more computation allocated to harder-to-predict transitions, such as spaces between words and ends of sentences.",
+        "type": "finding",
+        "evidence": {
+          "section": "abstract",
+          "passage": "ACT does not yield large gains in performance; however it does provide intriguing insight into the structure of the data, with more computation allocated to harder-to-predict transitions, such as spaces between words and ends of sentences."
+        }
+      }
+    ],
+    "limitations": [
+      "ACT or other adaptive computation methods could provide a generic method for inferring segment boundaries in sequence data, but this is suggested rather than explicitly stated as a limitation."
+    ],
+    "methods_norm": [
+      "Adaptive Computation Time (ACT"
+    ],
+    "datasets_norm": [
+      "Hutter prize Wikipedia dataset"
+    ],
+    "task_norm": "Improving performance of recurrent neural networks",
+    "method_families": [
+      "Other"
+    ],
+    "metrics_norm": [],
+    "_input_text": "[abstract]\nThis paper introduces Adaptive Computation Time (ACT), an algorithm that allows recurrent neural networks to learn how many computational steps to take between receiving an input and emitting an output. ACT requires minimal changes to the network architecture, is deterministic and differentiable, and does not add any noise to the parameter gradients. Experimental results are provided for four synthetic problems: determining the parity of binary vectors, applying binary logic operations, adding integers, and sorting real numbers. Overall, performance is dramatically improved by the use of ACT, which successfully adapts the number of computational steps to the requirements of the problem. We also present character-level language modelling results on the Hutter prize Wikipedia dataset. In this case ACT does not yield large gains in performance; however it does provide intriguing insight into the structure of the data, with more computation allocated to harder-to-predict transitions, such as spaces between words and ends of sentences. This suggests that ACT or other adaptive computation methods could provide a generic method for inferring segment boundaries in sequence data."
+  },
+  {
+    "paper_id": "kimi2026",
+    "title": "Kimi Team. Attention Residuals",
+    "year": 2026,
+    "task": "Improving LLM performance",
+    "methods": [
+      "Attention Residuals (AttnRes)",
+      "Block AttnRes"
+    ],
+    "datasets": [],
+    "metrics": [],
+    "claims": [
+      {
+        "claim_id": "c1",
+        "text": "Attention Residuals (AttnRes) replaces fixed accumulation with softmax attention over preceding layer outputs.",
+        "type": "method",
+        "evidence": {
+          "section": "abstract",
+          "passage": "We propose Attention Residuals (AttnRes), which replaces this fixed accumulation with softmax attention over preceding layer outputs, allowing each layer to selectively aggregate earlier representations with learned, input-dependent weights."
+        }
+      },
+      {
+        "claim_id": "c2",
+        "text": "Block AttnRes partitions layers into blocks and attends over block-level representations, reducing the memory footprint while preserving most of the gains of full AttnRes.",
+        "type": "method",
+        "evidence": {
+          "section": "abstract",
+          "passage": "To address the memory and communication overhead of attending over all preceding layer outputs for large-scale model training, we introduce Block AttnRes, which partitions layers into blocks and attends over block-level representations, reducing the memory footprint while preserving most of the gains of full AttnRes."
+        }
+      },
+      {
+        "claim_id": "c3",
+        "text": "AttnRes mitigates PreNorm dilution, yielding more uniform output magnitudes and gradient distribution across depth, and improves downstream performance across all evaluated tasks.",
+        "type": "finding",
+        "evidence": {
+          "section": "abstract",
+          "passage": "We further integrate AttnRes into the Kimi Linear architecture (48B total / 3B activated parameters) and pre-train on 1.4T tokens, where AttnRes mitigates PreNorm dilution, yielding more uniform output magnitudes and gradient distribution across depth, and improves downstream performance across all evaluated tasks."
+        }
+      }
+    ],
+    "limitations": [
+      "Block AttnRes introduces memory and communication overhead for large-scale model training."
+    ],
+    "methods_norm": [
+      "Attention Residuals (AttnRes",
+      "Block AttnRes"
+    ],
+    "datasets_norm": [],
+    "task_norm": "Improving LLM performance",
+    "method_families": [
+      "Other"
+    ],
+    "metrics_norm": [],
+    "_input_text": "[abstract]\nResidual connections with PreNorm are standard in modern LLMs, yet they accumulate all layer outputs with fixed unit weights. This uniform aggregation causes uncontrolled hidden-state growth with depth, progressively diluting each layer's contribution. We propose Attention Residuals (AttnRes), which replaces this fixed accumulation with softmax attention over preceding layer outputs, allowing each layer to selectively aggregate earlier representations with learned, input-dependent weights. To address the memory and communication overhead of attending over all preceding layer outputs for large-scale model training, we introduce Block AttnRes, which partitions layers into blocks and attends over block-level representations, reducing the memory footprint while preserving most of the gains of full AttnRes. Combined with cache-based pipeline communication and a two-phase computation strategy, Block AttnRes becomes a practical drop-in replacement for standard residual connections with minimal overhead. Scaling law experiments confirm that the improvement is consistent across model sizes, and ablations validate the benefit of content-dependent depth-wise selection. We further integrate AttnRes into the Kimi Linear architecture (48B total / 3B activated parameters) and pre-train on 1.4T tokens, where AttnRes mitigates PreNorm dilution, yielding more uniform output magnitudes and gradient distribution across depth, and improves downstream performance across all evaluated tasks."
+  }
+]

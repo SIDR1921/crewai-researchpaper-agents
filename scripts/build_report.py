@@ -47,6 +47,16 @@ TEAMMATE_SLOTS = 2          # extra <STUDENT NAME>/<reg no.> pairs kept as place
 NA = "not available"
 
 
+def _clip(text: str | None, limit: int) -> str:
+    """Trim a quote at a word boundary so it never ends mid-word."""
+    t = " ".join(str(text or "").split())
+    if not t:
+        return "none"
+    if len(t) <= limit:
+        return t
+    return t[:limit].rsplit(" ", 1)[0].rstrip(",;:") + "\u2026"
+
+
 # --------------------------------------------------------------------- results
 
 class Results:
@@ -208,6 +218,7 @@ class ReportBuilder:
         self.toc: list[dict] = []
         self.notes: list[str] = []
         self.missing_figures: list[str] = []
+        self.unresolved_refs: list[str] = []
 
     # ---------------------------------------------------------------- plumbing
 
@@ -238,9 +249,9 @@ class ReportBuilder:
         D.add_bookmark(cap, item["bookmark"])
         return cap
 
-    def table(self, anchor_par, rows, caption: str, **kw):
+    def table(self, anchor_par, rows, caption: str, key: str | None = None, **kw):
         """Insert a table with a numbered caption above it, as the template's lists expect."""
-        item = self.tab.next(caption)
+        item = self.tab.next(caption, source=key or caption[:40])
         cap = D.add_caption(anchor_par, f"{item['label']}: {caption}", size_pt=10.0)
         cap.paragraph_format.space_after = Pt(3)
         D.add_bookmark(cap, item["bookmark"])
@@ -336,6 +347,7 @@ class ReportBuilder:
         listed = R.get("stage1_yield.json", "yield.listed")
         kept = R.get("stage1_yield.json", "datasets.rw_pairs_kept")
         n_ctx = R.get("stage1_yield.json", "datasets.contexts_rows")
+        n_lab = R.get("stage2_labelling.json", "n_labelled_total")
         kappa = R.get("stage2_gold_agreement.json", "llm_vs_gold.cohen_kappa")
         sci_f1 = R.get("stage2_benchmark.json", "scibert.macro_f1")
         tfidf_f1 = R.get("stage2_benchmark.json", "tfidf_lr.macro_f1")
@@ -350,51 +362,62 @@ class ReportBuilder:
         n_eval = R.get("eval_arxiv.json", "benchmark.n_examples")
 
         parts = [
-            f"Large language models write fluent literature reviews that cite papers they have "
-            f"not read. This project builds and evaluates a CrewAI-based research-paper "
-            f"summarisation and literature-review assistant in which every sentence of the "
-            f"output is traceable to a quoted passage of a specific paper and is checked by a "
-            f"natural-language-inference Verifier before it survives. Six agents — Librarian, "
-            f"Extractor, Verifier, Synthesist/Adjudicator, Gap Analyst and Writer — are "
-            f"orchestrated as a CrewAI Flow with a human approval checkpoint after corpus "
-            f"collection."
+            "A large language model can write a literature review that reads well and still "
+            "describe papers it has not understood. The sentences look right, the citations "
+            "are real, and only someone who reads the cited papers can tell that a claim does "
+            "not belong to the paper it is attached to. This project builds a system that "
+            "makes that failure visible. It is a team of six language-model agents, built with "
+            "the CrewAI framework, that reads a set of papers and writes a related-work "
+            "section in which every sentence can be traced back to a quoted line from a "
+            "specific paper. A separate checking model decides whether each sentence really "
+            "follows from the lines behind it, and anything that fails is rewritten once and "
+            "then marked rather than hidden."
         ]
-        p2 = (f"Training and evaluation data are reverse-engineered from real papers: a paper's "
-              f"related-work section is a human-written mini literature review, so mining those "
-              f"sections together with the abstracts of the papers they cite yields both a "
-              f"supervision signal and a natural benchmark. ")
+
+        p2 = ("The training data comes from the papers themselves. The related-work section of "
+              "any published paper is a short literature review that an expert has already "
+              "written, and the papers it cites are known. Hiding that section and keeping only "
+              "the cited papers' abstracts gives a task with a correct answer, at no annotation "
+              "cost. ")
         if listed and kept:
-            p2 += (f"From {listed:,} arXiv cs.CL and cs.IR submissions the pipeline produced "
-                   f"{n_ctx:,} citation contexts and {kept} usable related-work benchmark "
-                   f"examples. ")
+            p2 += (f"From {listed:,} arXiv papers in computer-science language and information "
+                   f"retrieval, the pipeline produced {n_ctx:,} citation sentences and {kept} "
+                   f"usable test examples. ")
         else:
-            p2 += "Stage 1 mining statistics were not available when this report was built. "
+            p2 += "The mining statistics were not available when this report was built. "
+        if n_lab:
+            p2 += (f"{n_lab:,} of those citation sentences were labelled with one of seven "
+                   f"relation types, such as whether a paper is being used, compared against "
+                   f"or disagreed with. ")
         if kappa is not None and sci_f1 is not None:
-            p2 += (f"A seven-class citation-relation classifier fine-tuned from SciBERT reaches "
-                   f"{sci_f1:.2f} macro-F1 on a adjudicated gold set"
-                   + (f", against {tfidf_f1:.2f} for a TF-IDF baseline" if tfidf_f1 is not None else "")
-                   + f"; the LLM labels it learns from agree with the adjudicated gold set at "
-                     f"κ = {kappa:.2f}.")
+            p2 += (f"A classifier fine-tuned from SciBERT scores {sci_f1:.2f} macro-F1 on a "
+                   f"hand-checked set"
+                   + (f", against {tfidf_f1:.2f} for a simple word-counting baseline"
+                      if tfidf_f1 is not None else "")
+                   + f", and the machine labels it learns from agree with the hand-checked "
+                     f"ones at a kappa of {kappa:.2f}.")
         parts.append(p2)
 
         p3 = ""
         if sup is not None:
-            p3 += (f"The Verifier, whose two thresholds are fitted on a hand-checked dev set, "
-                   f"finds {sup:.0%} of extracted claims fully supported by the passage they "
-                   f"quote. ")
+            p3 += (f"The checker finds {sup:.0%} of extracted claims fully supported by the "
+                   f"line they quote. The gap between quoting correctly and being supported is "
+                   f"the problem this project is about: a model usually copies the quote "
+                   f"accurately and still writes a claim the quote does not prove. ")
         if s1_r is not None and s3_r is not None and n_eval:
-            direction = "above" if s3_r > s1_r else "below"
-            p3 += (f"On a frozen, time-split benchmark of {n_eval} papers published after the "
-                   f"evaluated models' knowledge cutoffs, the full crew scores ROUGE-L "
-                   f"{s3_r:.3f}, {direction} a single well-prompted call at {s1_r:.3f}")
+            direction = "better than" if s3_r > s1_r else "below"
+            p3 += (f"On {n_eval} test papers published after every tested model's training "
+                   f"cut-off, the full team scores ROUGE-L {s3_r:.3f}, {direction} a single "
+                   f"well-written prompt at {s1_r:.3f}")
             if s1_f is not None and s3_f is not None:
-                p3 += (f", while sentence-level faithfulness moves from {s1_f:.2f} to {s3_f:.2f}")
+                p3 += (f", while the share of sentences that survive checking moves from "
+                       f"{s1_f:.2f} to {s3_f:.2f}")
             p3 += ". "
         else:
-            p3 += ("The full S1–S4 comparison had not been run when this report was built; "
-                   "Chapter 4 states exactly which systems were evaluated. ")
-        p3 += ("All reported numbers are read from the result files the code wrote, and every "
-               "figure is generated from those files by a single script.")
+            p3 += ("The full comparison between systems had not been run when this report was "
+                   "built, and Chapter 4 says exactly which parts were and were not measured. ")
+        p3 += ("Every number in this report is read from a file the code wrote, and every "
+               "figure is drawn from those files by a single script.")
         parts.append(p3)
 
         cur = head
@@ -414,109 +437,117 @@ class ReportBuilder:
         _, h = self.anchor("1.1 Overview of the")
         self.bookmark_heading(h, "Overview of the project work", number="1.1")
         D.add_paragraphs(h, [
-            "This project builds a literature-review assistant from a team of large-language-"
-            "model agents, and then measures whether the team is worth its cost. Given a topic "
-            "or a few seed papers, the system collects a corpus, extracts a structured record "
-            "from each paper in which every claim quotes the passage it came from, checks each "
-            "claim against that passage with a natural-language-inference model, builds a "
-            "consensus and contradiction map over the reported results, identifies candidate "
-            "research gaps, and finally writes a related-work section in which each sentence "
-            "carries the identifiers of the claims it rests on.",
-            "The pipeline is orchestrated as a CrewAI Flow of ten steps with a human approval "
-            "checkpoint after corpus collection, and six agents with deliberately narrow roles: "
-            "the Extractor cannot search, the Writer cannot verify, and only the Verifier may "
-            "call the entailment tool. Two components are fine-tuned rather than prompted. The "
-            "first is a seven-class citation-relation classifier, trained from SciBERT on "
-            "citation contexts mined out of real papers' related-work sections. The second is a "
-            "small instruction-tuned model distilled from the hosted extractor, trained only on "
-            "extractions whose every claim passed the Verifier, so the Verifier acts as the "
-            "filter on its own training data.",
-            "The same supervision idea supplies the benchmark. A published paper's related-work "
-            "section is a literature review that a domain expert wrote for a known set of cited "
-            "papers. Hiding the section and supplying only those cited papers' abstracts gives a "
-            "task with a human reference, which is what makes the evaluation in Chapter 4 "
-            "possible without any new human annotation effort at evaluation time.",
+            "This project builds a tool that writes the \u201crelated work\u201d part of a research "
+            "report, and checks its own writing before handing it over. You give it a topic "
+            "or a few starting papers. It finds related papers, reads each one, pulls out the "
+            "main claims, and keeps a short quoted line from the paper next to every claim as "
+            "proof. It then compares the papers against each other to see where they agree, "
+            "where they disagree, and which combinations nobody has tried. Finally it writes "
+            "the section, and every sentence it writes carries a list of the claims it was "
+            "built from.",
+            "The work is divided between six agents, each with a narrow job: a Librarian that "
+            "finds papers, an Extractor that pulls out claims, a Verifier that checks them, a "
+            "Synthesist that compares papers, a Gap Analyst that looks for missing work, and a "
+            "Writer. The limits matter as much as the jobs. The Extractor cannot search for "
+            "anything, so it can only use the text it is given. The Writer cannot check its "
+            "own output, because a model asked to grade its own work tends to agree with "
+            "itself. Only the Verifier can run the checking model.",
+            "Two parts of the system are trained rather than prompted. The first is a "
+            "classifier that reads a sentence containing a citation and decides what the "
+            "sentence is doing: using the cited work, comparing against it, or disagreeing "
+            "with it. The second is a small model trained to copy the extraction step, so the "
+            "same work can be done on a laptop instead of through a paid interface.",
+            "The same idea supplies the test set. Every published paper already contains a "
+            "short literature review written by an expert \u2014 its related-work section \u2014 "
+            "and the papers it cites are listed. Hiding that section and giving a system only "
+            "the cited papers' abstracts creates a test with a correct answer that nobody had "
+            "to write by hand.",
         ])
 
         _, h = self.anchor("1.2 Motivation and background")
         self.bookmark_heading(h, "Motivation and background of the study", number="1.2")
         D.add_paragraphs(h, [
-            f"Abstractive summarisation models are fluent and are often wrong in ways that "
-            f"fluency hides. Maynez et al. {C('On Faithfulness and Factuality')} found that a "
-            f"large share of summaries from strong sequence-to-sequence models contain content "
-            f"unsupported by the source document, and that ROUGE barely distinguishes those "
-            f"summaries from faithful ones. The survey of hallucination in natural language "
-            f"generation {C('Survey of Hallucination')} documents the same failure across "
-            f"generation tasks. For a literature review the consequence is specific and serious: "
-            f"a plausible sentence attached to a real citation is a fabricated claim about "
-            f"somebody's work, and it is harder to catch than an invented reference, because the "
-            f"reference checks out.",
-            f"The response in the summarisation literature has been to evaluate entailment "
-            f"rather than overlap. Question-answering-based consistency checks "
-            f"{C('Asking and Answering Questions')}, classifier-based checks "
-            f"{C('Evaluating the Factual Consistency')} and sentence-level "
-            f"natural-language-inference checks {C('SummaC')} all score a summary against its "
-            f"source instead of against a reference text. This project adopts that stance at the "
-            f"level of the individual sentence, and goes one step further by requiring the "
-            f"system to say exactly which passage each sentence is supposed to follow from, so the "
-            f"check is well defined rather than approximate.",
-            f"Multi-agent LLM frameworks have meanwhile made it cheap to decompose a task across "
-            f"specialised roles with tools and a shared state "
-            f"{C('CAMEL', 'Generative Agents')}, and self-critique loops "
-            f"{C('Self-Refine', 'Reflexion')} have been shown to improve outputs on several "
-            f"tasks. What is largely missing is an honest accounting of whether that machinery "
-            f"pays for itself on a task with a human reference. The evaluation in this report is "
-            f"designed to answer that question for one task, with the same model and settings "
-            f"across every system, and to report the answer whichever way it comes out.",
+            f"Language models write fluent summaries that are often wrong in ways fluency "
+            f"hides. Maynez and colleagues {C('On Faithfulness and Factuality')} found that a "
+            f"large share of summaries from strong models contain statements the source "
+            f"document never made, and that the usual scoring method, ROUGE, barely "
+            f"distinguishes those summaries from correct ones. A later survey "
+            f"{C('Survey of Hallucination')} found the same pattern across many text-generation "
+            f"tasks.",
+            "For a literature review this is a serious problem rather than an annoying one. A "
+            "made-up reference is easy to catch, because the paper does not exist. A real "
+            "reference attached to a claim that paper never made is much harder to catch, "
+            "because every part of the sentence checks out except the link between them. A "
+            "reader would have to open the cited paper to notice, which is exactly the work "
+            "the tool was supposed to save.",
+            f"Researchers in summarisation responded by checking whether a summary follows "
+            f"from its source, instead of comparing it against a reference answer. One line of "
+            f"work generates questions from the summary and checks that the source gives the "
+            f"same answers {C('Asking and Answering Questions')}. Another trains a classifier "
+            f"on deliberately corrupted summaries {C('Evaluating the Factual Consistency')}. A "
+            f"third uses natural language inference, the task of deciding whether one sentence "
+            f"follows from another, applied one sentence at a time {C('SummaC')}. This project "
+            f"follows the third approach and adds one requirement: the system must say which "
+            f"line each sentence came from, so there is something definite to check against.",
+            f"Meanwhile it has become easy to split a task across several model-driven agents "
+            f"with their own roles and tools {C('CAMEL', 'Generative Agents')}, and to have a "
+            f"model criticise and revise its own output {C('Self-Refine', 'Reflexion')}. What "
+            f"is usually missing is an honest answer to whether all that extra machinery is "
+            f"worth its cost. This project measures that directly, with the same model and "
+            f"settings for every system compared, and reports the answer whichever way it "
+            f"comes out.",
         ])
 
         _, h = self.anchor("1.3 Problem statement")
         self.bookmark_heading(h, "Problem statement and relevance", number="1.3")
         D.add_paragraphs(h, [
-            "The problem addressed is: given a research topic and the papers relevant to it, "
-            "produce a literature review in which every sentence is grounded in an identifiable "
-            "passage of an identifiable paper, together with a map of where those papers agree "
-            "and disagree and a ranked set of gaps, and do so under free-tier API limits and on "
-            "a single free-tier GPU.",
-            "Three sub-problems follow. First, grounding needs supervision that does not exist "
-            "as a labelled dataset: what relation a citing sentence asserts about a cited paper "
-            "has to be learned, and the only abundant source of that signal is the related-work "
-            "sections of published papers. Second, verification has to be mechanical rather than "
-            "a second opinion from the same model, because a model asked to check its own output "
-            "agrees with itself. Third, the whole thing has to be measured against something a "
-            "human wrote, or the claim of groundedness is untestable.",
-            "The relevance is practical. The number of papers in any active area now exceeds "
-            "what a student can read before writing a review, and the tools that promise to help "
-            "are precisely the tools that hallucinate. A system that is slower but whose every "
-            "sentence can be checked against a quoted passage is more useful than a faster one "
-            "whose output must be re-read against the sources anyway.",
+            "The problem is this: given a research topic and the papers that matter to it, "
+            "produce a literature review in which every sentence can be traced to a specific "
+            "line in a specific paper, together with a map of where those papers agree and "
+            "disagree and a list of gaps \u2014 and do it within the limits of a free API account "
+            "and one free cloud GPU.",
+            "Three smaller problems follow. First, there is no ready-made dataset that says "
+            "what a citing sentence is claiming about the paper it cites, so that signal has "
+            "to be mined from published papers. Second, the checking cannot be done by asking "
+            "the same model again, because it will usually agree with itself; it needs a "
+            "separate model doing a different task. Third, the result has to be compared "
+            "against something a human wrote, or the claim that the output is well-grounded "
+            "cannot be tested at all.",
+            "The practical case is simple. Any active research area now produces more papers "
+            "than a student can read before writing about them, and the tools that offer to "
+            "help are the same tools that invent things. A slower system whose every sentence "
+            "can be checked against a quoted line is more useful than a fast one whose output "
+            "has to be re-read against the sources anyway.",
         ])
 
         _, h = self.anchor("1.4 Objectives")
         self.bookmark_heading(h, "Objectives", number="1.4")
-        D.add_body_paragraph(h, "The objectives are numbered and measurable; the metric named in "
-                                "each is the one reported in Chapter 4.")
+        D.add_body_paragraph(h, "Each objective below names the measurement that decides "
+                                "whether it was met. Chapter 4 reports those measurements.")
         last = self.doc.paragraphs[self.anchor("1.4 Objectives")[0] + 1]
         D.add_bullets(last, [
-            "Mine related-work sections and citation contexts from arXiv LaTeX sources, and "
-            "report the yield at every step of the pipeline as a percentage of papers listed.",
-            "Define a seven-class citation-relation taxonomy with a written labelling guide, "
-            "label contexts with an LLM, and quantify how far those labels can be trusted by "
-            "measuring accuracy and Cohen's κ against an independently adjudicated gold set.",
-            "Fine-tune SciBERT on those labels and beat a majority-class, a TF-IDF + logistic-"
-            "regression and a zero-shot LLM baseline on macro-F1 over the gold set.",
-            "Extract structured records in which every claim quotes its evidence verbatim, and "
-            "verify each claim with a quote check and an NLI entailment check whose thresholds "
-            "are fitted on a hand-checked dev set rather than chosen by hand.",
-            "Build a consensus and contradiction map and a method-family × dataset coverage "
-            "matrix, and have agents argue both sides of each flagged contradiction and each "
-            "candidate gap using only the evidence.",
-            "Distil the hosted extractor into a small local model using only Verifier-approved "
-            "extractions, and compare the two on JSON validity, claim faithfulness, field "
-            "agreement, latency and cost.",
-            "Evaluate four systems and one ablation on a frozen, time-split benchmark with "
-            "ROUGE, BERTScore, citation coverage, citation correctness and NLI faithfulness, "
-            "reporting bootstrap 95% confidence intervals and the token and latency cost of each.",
+            "Mine related-work sections and citation sentences from arXiv source files, and "
+            "report how many papers survive each step as a percentage of those listed.",
+            "Define seven citation relation types with a written labelling guide, label "
+            "sentences with a language model, and measure how far those labels can be trusted "
+            "by comparing them against a set labelled independently by hand.",
+            "Fine-tune SciBERT on those labels and beat three baselines \u2014 always guessing "
+            "the most common class, a word-counting classifier, and asking a language model "
+            "with no training \u2014 on macro-F1.",
+            "Extract claims that quote their evidence word for word, and check each claim "
+            "twice: that the quote really appears in the source, and that the claim follows "
+            "from the quote. Set the thresholds for both checks by testing them on a "
+            "hand-checked sample rather than guessing.",
+            "Build a map of agreement and disagreement between papers and a table of which "
+            "method families have been tried on which datasets, and have agents argue both "
+            "for and against every disagreement and every gap they report.",
+            "Train a small local model to copy the extraction step, using only extractions "
+            "that passed the checker, and compare the two on output validity, claim support, "
+            "speed and cost.",
+            "Compare four systems and one cut-down version on papers published after every "
+            "tested model's training cut-off, reporting overlap with the human text, how many "
+            "cited papers are discussed, how often a sentence is attached to the right paper, "
+            "how many sentences survive checking, and what each system cost to run.",
         ], numbered=True)
 
     # --------------------------------------------------------------- chapter 2
@@ -529,155 +560,153 @@ class ReportBuilder:
         _, title = self.anchor("BACKGROUND THEORY / LITERATURE REVIEW")
 
         cur = D.add_paragraphs(title, [
-            "This chapter surveys the five bodies of work this project draws on: multi-document "
-            "and scientific summarisation, citation intent and function classification, "
-            "faithfulness and hallucination evaluation, LLM agents and multi-agent frameworks, "
-            "and LLM-assisted literature-review tools. Every work discussed here was checked "
-            "against OpenAlex, Semantic Scholar or the arXiv API before being cited; the "
-            "verification record is in results/references_verified.json.",
+            "{{TAB:approach-comparison}} at the end of this chapter summarises how the "
+            "approaches below compare. This chapter covers the five areas this project draws on: summarising several "
+            "documents at once, working out what a citation is doing, checking whether "
+            "generated text is actually supported, teams of language-model agents, and tools "
+            "that help write literature reviews. Every paper named here was checked against "
+            "OpenAlex, Semantic Scholar or the arXiv listing before it was cited; the record "
+            "of those checks is in results/references_verified.json.",
         ])
 
-        cur = D.add_heading(cur, "Multi-document and scientific summarisation")
+        cur = D.add_heading(cur, "Summarising scientific papers")
         cur = D.add_paragraphs(cur, [
-            f"Neural abstractive summarisation of single documents matured with "
-            f"pointer-generator architectures that could copy out-of-vocabulary tokens from the "
-            f"source {C('Get To The Point')} and then with pre-trained denoising sequence-to-"
-            f"sequence models, of which BART {C('BART')} and PEGASUS {C('PEGASUS')} remain the "
-            f"standard comparison points. Scientific articles broke the assumption that a "
-            f"document fits in the encoder: Cohan et al. {C('A Discourse-Aware Attention Model')} "
-            f"introduced a discourse-aware attention model together with the arXiv and PubMed "
-            f"long-document datasets, and the XSum corpus {C('Just the Summary')} "
-            f"pushed in the opposite direction, towards one-sentence summaries that cannot be "
-            f"produced extractively.",
-            f"Related-work generation is the sub-task this project evaluates, and it is older "
-            f"than the current generation of models. Abu-Ra'ed et al. "
-            f"{C('Automatic related work section generation')} treated it as scientific document "
-            f"abstracting over the cited papers, and Hoang and Kan's successors, notably Wang et "
-            f"al. {C('Neural Related Work Summarization')}, introduced joint context-driven "
-            f"attention over the citing paper's own content and the cited abstracts. Luu et al. "
-            f"{C('Explaining Relationships Between Scientific Documents')} framed the problem as "
-            f"explaining the relationship between two documents rather than summarising one of "
-            f"them, which is the framing closest to the relation classifier used here.",
-            f"Multi-XScience {C('Multi-XScience')} is the dataset that made the task a benchmark: "
-            f"each example pairs a paper's related-work paragraph with the abstracts of the "
-            f"papers it cites, which is exactly the input-output contract adopted in Chapter 3. "
-            f"It is used in this project as a secondary benchmark alongside the mined arXiv "
-            f"split, so results can be compared against a published dataset rather than only "
-            f"against our own mining. The corpus-level infrastructure both rely on comes from "
-            f"S2ORC {C('S2ORC')}, which released parsed full text and resolved citation links at "
-            f"a scale that made citation-context mining routine. More recently, Zhang et al. "
+            f"Summarising a single document improved in two steps. First came models that "
+            f"could copy rare words straight out of the source instead of trying to spell them "
+            f"{C('Get To The Point')}. Then came large models pre-trained on a general "
+            f"text-repair task and adapted to summarising, of which BART {C('BART')} and "
+            f"PEGASUS {C('PEGASUS')} are still the usual points of comparison.",
+            f"Scientific papers broke an assumption these models relied on, which is that a "
+            f"document fits inside the model at once. Cohan and colleagues "
+            f"{C('A Discourse-Aware Attention Model')} handled longer documents by paying "
+            f"attention to section structure, and released the arXiv and PubMed datasets that "
+            f"made long-document summarising a standard task. The XSum dataset "
+            f"{C('Just the Summary')} pushed the other way, asking for a single sentence that "
+            f"cannot be produced by copying.",
+            f"Writing a related-work section is the specific task this project is tested on, "
+            f"and it is older than today's models. Abu-Ra'ed and colleagues "
+            f"{C('Automatic related work section generation')} treated it as summarising the "
+            f"cited papers. Wang and colleagues {C('Neural Related Work Summarization')} let "
+            f"the model attend to both the citing paper's own content and the cited abstracts. "
+            f"Luu and colleagues {C('Explaining Relationships Between Scientific Documents')} "
+            f"reframed it as explaining the relationship between two papers rather than "
+            f"summarising one, which is the closest existing idea to the relation classifier "
+            f"used here.",
+            f"Multi-XScience {C('Multi-XScience')} turned the task into a standard benchmark: "
+            f"each example pairs a paper's related-work paragraph with the abstracts it cites, "
+            f"which is exactly the setup described in Chapter 3. This project uses it as a "
+            f"second test set so results can be compared against a published dataset and not "
+            f"only against our own mining. The large-scale parsed full text both rely on comes "
+            f"from S2ORC {C('S2ORC')}. More recently Zhang and colleagues "
             f"{C('Benchmarking Large Language Models for News Summarization')} found that "
-            f"instruction-tuned LLMs match or beat fine-tuned summarisers in human judgement "
-            f"while reference-based metrics disagree, which is a direct warning about reading "
-            f"ROUGE alone, and one the evaluation design in this report takes seriously.",
+            f"instruction-tuned models match or beat specially trained summarisers in human "
+            f"judgement while the automatic scores disagree \u2014 a direct warning against "
+            f"reading ROUGE on its own, and one the evaluation here takes seriously.",
         ])
 
-        cur = D.add_heading(cur, "Citation intent and function classification")
+        cur = D.add_heading(cur, "Working out what a citation is doing")
         cur = D.add_paragraphs(cur, [
-            f"Not every citation does the same work, and the differences are what a review has "
-            f"to express. Early work in the area concentrated on citation sentiment and on "
-            f"recovering the citation's context window "
+            f"Citations are not all the same, and the differences are what a review has to "
+            f"express. Early work looked at whether a citation was positive or negative and at "
+            f"how much surrounding text was needed to tell "
             f"{C('Context-Enhanced Citation Sentiment Detection')}, "
-            f"{C('Mining the Context of Citations')}. The two datasets that "
-            f"standardised the task are ACL-ARC, whose six citation-frame labels Jurgens et al. "
-            f"{C('Measuring the Evolution of a Scientific Field')} used to trace how a field "
-            f"changes, and SciCite {C('Structural Scaffolds')}, which traded label granularity "
-            f"for scale with three classes — background, method and result — and showed that "
-            f"auxiliary structural tasks improve classification. SciBERT {C('SciBERT')} supplied "
-            f"the scientific-text encoder that both datasets are now usually attacked with, and "
-            f"is the starting point for the classifier in this project.",
-            "The taxonomy used here is finer than SciCite's and differently cut from ACL-ARC's, "
-            "for a reason that matters downstream: this project needs to distinguish neutral "
-            "comparison from asserted disagreement, because a contrasts edge is evidence of a "
-            "contradiction while a compares-against edge is not. SciCite's result class and "
-            "ACL-ARC's CompareOrContrast class both merge the two. Section 3.1 documents the "
-            "mapping used to reuse those corpora as additional training signal, and the limits "
-            "of that mapping; because of those limits, mapped rows are never used as evaluation "
-            "gold.",
+            f"{C('Mining the Context of Citations')}. Two datasets then made the task "
+            f"standard. ACL-ARC, used by Jurgens and colleagues "
+            f"{C('Measuring the Evolution of a Scientific Field')} to trace how a research "
+            f"field changes over time, has six categories. SciCite "
+            f"{C('Structural Scaffolds')} traded detail for size with three \u2014 background, "
+            f"method and result \u2014 and showed that training on related side-tasks helps. "
+            f"SciBERT {C('SciBERT')}, a version of BERT trained on scientific text, is the "
+            f"usual starting point for both, and is the starting point here.",
+            "The seven categories used in this project are finer than SciCite's and cut "
+            "differently from ACL-ARC's, for one reason that matters later. The system needs "
+            "to tell a neutral comparison apart from an actual disagreement. Running someone "
+            "else's method as a baseline and reporting that you scored higher is a "
+            "measurement. Saying their conclusion does not hold is a disagreement, and only "
+            "the second is evidence that two papers conflict. SciCite's \u201cresult\u201d class "
+            "and ACL-ARC's \u201ccompare or contrast\u201d class both merge the two. Section 3.1 "
+            "sets out how those datasets were mapped onto our categories and what that mapping "
+            "loses; because it loses something, mapped rows are used only for extra training "
+            "and never for scoring.",
         ])
 
-        cur = D.add_heading(cur, "Faithfulness and hallucination evaluation")
+        cur = D.add_heading(cur, "Checking whether generated text is supported")
         cur = D.add_paragraphs(cur, [
-            f"The finding that motivates this project is that fluent summaries are frequently "
-            f"unfaithful and that reference-overlap metrics do not notice "
-            f"{C('On Faithfulness and Factuality')}. Three families of automatic check emerged "
-            f"in response. FactCC {C('Evaluating the Factual Consistency')} trains a classifier "
-            f"on synthetically corrupted summaries. QAGS {C('Asking and Answering Questions')} "
-            f"generates questions from the summary and compares the answers obtained from the "
-            f"summary and from the source. SummaC {C('SummaC')} revisits sentence-level "
-            f"natural-language inference and shows that NLI models work well for inconsistency "
-            f"detection once they are applied at sentence granularity rather than to whole "
-            f"documents, which is the design this project's Verifier follows.",
-            f"Evaluating the evaluators required human annotation: SummEval "
-            f"{C('SummEval')} re-annotated model outputs across several dimensions and showed "
-            f"how weakly the standard metrics correlate with human judgement, and the FRANK-"
-            f"style fine-grained factuality annotations of Goyal and Durrett "
-            f"{C('Annotating and Modeling Fine-grained Factuality')} showed that error types "
-            f"differ systematically between model families. BERTScore {C('BERTScore')} is "
-            f"included in this project's metric set as a semantic-similarity complement to "
-            f"ROUGE, not as a faithfulness measure, because it compares a generation against a "
-            f"reference rather than against a source.",
-            f"The claim-verification literature supplies the other half of the picture. FEVER "
-            f"{C('FEVER')} established the retrieve-then-entail formulation at scale, SciFact "
-            f"{C('Fact or Fiction')} moved it into the scientific domain where claims are "
-            f"hedged and evidence is technical, and DeBERTa {C('DeBERTa')} provides the "
-            f"disentangled-attention encoder whose MNLI/FEVER/ANLI-trained checkpoints are used "
-            f"as the entailment model in Chapter 3. The survey of hallucination "
-            f"{C('Survey of Hallucination')} ties the strands together and is the reference for "
-            f"the terminology used in this report: a claim is unsupported when the evidence "
-            f"does not entail it, which is weaker and more checkable than calling it false.",
+            f"The finding behind this project is that fluent summaries are often unsupported "
+            f"and that overlap scores do not notice "
+            f"{C('On Faithfulness and Factuality')}. Three families of automatic check "
+            f"followed. FactCC {C('Evaluating the Factual Consistency')} trains a classifier "
+            f"on summaries that were deliberately broken in known ways. QAGS "
+            f"{C('Asking and Answering Questions')} asks questions about the summary and "
+            f"checks whether the source gives the same answers. SummaC {C('SummaC')} revisits "
+            f"natural language inference \u2014 deciding whether one sentence follows from "
+            f"another \u2014 and shows it works well once applied sentence by sentence rather "
+            f"than to whole documents. That last design is the one the checker here copies.",
+            f"Working out whether these checks are any good needed human judgement. SummEval "
+            f"{C('SummEval')} re-annotated model outputs and showed how weakly the standard "
+            f"scores track what people actually think. Goyal and Durrett "
+            f"{C('Annotating and Modeling Fine-grained Factuality')} annotated errors in "
+            f"detail and found that different kinds of model fail in different ways. "
+            f"BERTScore {C('BERTScore')} is included here as a meaning-based alternative to "
+            f"ROUGE, not as a support check, because it compares generated text against a "
+            f"reference answer rather than against the source.",
+            f"The fact-checking field supplies the other half. FEVER {C('FEVER')} established "
+            f"the pattern of retrieving evidence and then testing whether it supports a claim. "
+            f"SciFact {C('Fact or Fiction')} moved that into science, where claims are hedged "
+            f"and evidence is technical. DeBERTa {C('DeBERTa')} is the model design whose "
+            f"trained versions are used here as the checker. The hallucination survey "
+            f"{C('Survey of Hallucination')} supplies the wording used throughout this report: "
+            f"a claim is called unsupported when the evidence does not establish it, which is "
+            f"a weaker and more checkable statement than calling it false.",
         ])
 
-        cur = D.add_heading(cur, "LLM agents and multi-agent frameworks")
+        cur = D.add_heading(cur, "Teams of language-model agents")
         cur = D.add_paragraphs(cur, [
-            f"Prompting a single model to reason in steps {C('Chain-Of-Thought Prompting')} was "
-            f"the first sign that decomposition helps, and tool use "
-            f"{C('Toolformer')} made it possible for a model to act outside its own context. "
-            f"Multi-agent arrangements followed: CAMEL {C('CAMEL')} showed that role-played "
-            f"agents conversing can carry a task further than a single prompt, and generative "
-            f"agents {C('Generative Agents')} demonstrated persistent memory and planning across "
-            f"long horizons. Iterative self-correction was formalised as Self-Refine "
-            f"{C('Self-Refine')} and, with an explicit verbal critic, as Reflexion "
-            f"{C('Reflexion')}.",
-            "CrewAI, the framework used here, belongs to this family: it provides typed agents "
-            "with roles, goals and tools, tasks with structured outputs, and Flows that wire "
-            "steps together with explicit control flow and state. Two of its features are load-"
-            "bearing in this project. Structured task output validated against a Pydantic model "
-            "is what lets the Extractor's output be checked mechanically rather than parsed from "
-            "prose. Flows with named steps are what let the human approval checkpoint be a real "
-            "gate and let a run resume after a disconnection, which matters when the whole "
-            "pipeline must fit inside free-tier limits.",
-            "The critical observation from this literature, for present purposes, is that "
-            "self-critique uses the same model that produced the text. A model's own judgement "
-            "of its own output is correlated with the error that produced it. The Verifier in "
-            "this project is therefore not an agent asked to be sceptical but a separate "
-            "discriminative model applied to a well-defined pair of strings, and the agent whose "
-            "role is called Verifier may do nothing except call it.",
+            f"Asking a model to work through a problem in steps was the first sign that "
+            f"breaking a task up helps {C('Chain-Of-Thought Prompting')}, and giving a model "
+            f"tools let it act outside its own text {C('Toolformer')}. Several agents working "
+            f"together followed: CAMEL {C('CAMEL')} showed that agents given roles and allowed "
+            f"to talk can carry a task further than one prompt, and generative agents "
+            f"{C('Generative Agents')} showed memory and planning over long runs. Having a "
+            f"model criticise and fix its own work was formalised as Self-Refine "
+            f"{C('Self-Refine')} and, with a separate critic, as Reflexion {C('Reflexion')}.",
+            "CrewAI, the framework used here, belongs to this family. It provides agents with "
+            "a role, a goal and a list of tools; tasks whose output can be forced into a fixed "
+            "shape; and flows that connect steps with explicit order and shared state. Two of "
+            "its features carry real weight in this project. Forcing a task's output into a "
+            "fixed data shape is what lets the Extractor be checked by code rather than read "
+            "by eye. Named flow steps are what let the human approval point be a real stop, "
+            "and let a run that is interrupted carry on where it left off \u2014 which matters "
+            "when everything has to fit inside a free account's limits.",
+            "The important lesson from this literature, for this project, is that a model "
+            "checking its own work is using the same model that produced it, and its judgement "
+            "is tied to the error that caused the problem. The checker here is therefore not "
+            "an agent asked to be sceptical. It is a separate, smaller model doing a different "
+            "job on a well-defined pair of texts, and the agent whose role is called Verifier "
+            "is allowed to do nothing except call it.",
         ])
 
-        cur = D.add_heading(cur, "LLM-assisted literature review")
+        cur = D.add_heading(cur, "Tools that help write literature reviews")
         cur = D.add_paragraphs(cur, [
-            f"Retrieval-augmented generation {C('Retrieval-Augmented Generation')} with dense "
-            f"retrieval {C('Dense Passage Retrieval')} is the standard way to ground a generator "
-            f"in documents, and it is the backbone of the applied systems. PaperQA "
-            f"{C('PaperQA')} is a retrieval-augmented agent for scientific question answering "
-            f"that reports reduced hallucination relative to a plain LLM by forcing answers "
-            f"through retrieved passages. STORM "
-            f"{C('Assisting in Writing Wikipedia-like Articles')} attacks the longer-form "
-            f"problem: it researches a topic by simulating "
-            f"multi-perspective question asking, builds an outline, and writes a long article "
-            f"with citations. Sušnjak et al. {C('Automating Research Synthesis')} fine-tune "
-            f"domain-specific models for research synthesis and report on the practical "
-            f"trade-offs of doing so.",
-            f"Two things separate the system built here from those. The first is "
-            f"sentence-level accountability: STORM and PaperQA cite at the level of a passage or "
-            f"a paragraph, whereas this system records, for every sentence, the claim "
-            f"identifiers it used, and then checks that sentence against exactly those claims' "
-            f"evidence. The second is that two components are learned rather than prompted. The "
-            f"citation-relation classifier is trained on data mined from real related-work "
-            f"sections, and the extractor is distilled with QLoRA {C('QLoRA')} from the hosted "
-            f"model onto a small open base model {C('Qwen2.5 Technical Report')}, using the "
-            f"Verifier to filter the distillation set.",
+            f"Retrieval-augmented generation {C('Retrieval-Augmented Generation')}, with "
+            f"meaning-based search {C('Dense Passage Retrieval')}, is the standard way to tie "
+            f"a model's output to documents, and it is what the practical tools are built on. "
+            f"PaperQA {C('PaperQA')} answers scientific questions by forcing the answer "
+            f"through retrieved passages, and reports less invention as a result. STORM "
+            f"{C('Assisting in Writing Wikipedia-like Articles')} tackles longer writing: it "
+            f"researches a topic by simulating questions from several points of view, builds "
+            f"an outline, and writes a long article with citations. Su\u0161njak and colleagues "
+            f"{C('Automating Research Synthesis')} fine-tune subject-specific models for "
+            f"research synthesis and report the practical trade-offs.",
+            f"Two things separate the system built here. The first is how finely it is "
+            f"accountable. STORM and PaperQA attach citations at the level of a passage or a "
+            f"paragraph; this system records, for every sentence, the exact claim identifiers "
+            f"it used, then checks that sentence against those claims' quoted lines and no "
+            f"others. The second is that two parts are trained rather than prompted: the "
+            f"citation-relation classifier, trained on sentences mined from real papers, and "
+            f"the extractor, compressed into a small open model {C('Qwen2.5 Technical Report')} "
+            f"using QLoRA {C('QLoRA')} with the checker deciding which examples it may learn "
+            f"from.",
         ])
 
         # 2.1 comparative table
@@ -685,81 +714,84 @@ class ReportBuilder:
         self.bookmark_heading(h, "Summary of existing studies / Comparative analysis of "
                                  "various approaches", number="2.1")
         rows = [
-            ["Approach", "Representative work", "Grounding unit", "Verification",
-             "Typed relations", "Learned component"],
-            ["Pre-trained seq2seq summariser", f"BART {C('BART')}, PEGASUS {C('PEGASUS')}",
-             "none (whole source)", "none", "no", "full fine-tune"],
+            ["Approach", "Example work", "What a statement traces back to",
+             "What checks it", "Citation types", "Trained part"],
+            ["Pre-trained summariser", f"BART {C('BART')}, PEGASUS {C('PEGASUS')}",
+             "nothing specific", "nothing", "no", "whole model"],
             ["Related-work generator",
              f"Wang et al. {C('Neural Related Work Summarization')}, Multi-XScience "
              f"{C('Multi-XScience')}",
-             "cited abstract", "none", "no", "task-specific model"],
-            ["Citation intent classifier",
+             "a cited abstract", "nothing", "no", "a task-specific model"],
+            ["Citation-type classifier",
              f"SciCite {C('Structural Scaffolds')}, ACL-ARC "
              f"{C('Measuring the Evolution of a Scientific Field')}",
-             "citation sentence", "n/a", "3 or 6 classes", "SciBERT fine-tune"],
-            ["NLI faithfulness checker",
+             "the citing sentence", "not applicable", "3 or 6", "SciBERT"],
+            ["Support checker",
              f"SummaC {C('SummaC')}, QAGS {C('Asking and Answering Questions')}",
-             "summary sentence", "entailment / QA", "no", "NLI model (off the shelf)"],
-            ["Retrieval-augmented agent", f"PaperQA {C('PaperQA')}, STORM "
+             "a summary sentence", "inference or questions", "no", "an off-the-shelf model"],
+            ["Retrieval-based agent", f"PaperQA {C('PaperQA')}, STORM "
              f"{C('Assisting in Writing Wikipedia-like Articles')}",
-             "retrieved passage", "retrieval only", "no", "none (prompted)"],
-            ["Self-critique loop", f"Self-Refine {C('Self-Refine')}, Reflexion {C('Reflexion')}",
-             "whole output", "same model critiques itself", "no", "none (prompted)"],
-            ["This project", "Chapters 3–4",
-             "quoted passage per claim; claim ids per sentence",
-             "separate NLI model, thresholds fitted on a dev set",
-             "7 classes, fine-tuned",
-             "relation classifier + distilled extractor"],
+             "a retrieved passage", "retrieval only", "no", "none, prompted"],
+            ["Self-criticising loop",
+             f"Self-Refine {C('Self-Refine')}, Reflexion {C('Reflexion')}",
+             "the whole output", "the same model", "no", "none, prompted"],
+            ["This project", "Chapters 3\u20134",
+             "a quoted line per claim; claim ids per sentence",
+             "a separate model, thresholds fitted on a sample",
+             "7, trained", "relation classifier and extractor"],
         ]
         cur = self.table(h, rows,
-                         "Comparative analysis of approaches to grounded review generation. The "
-                         "grounding unit is what a generated statement can be traced back to; "
-                         "verification is what, if anything, checks that trace.",
+                         "How different approaches compare. The third column is what a "
+                         "generated statement can be traced back to, and the fourth is what, "
+                         "if anything, checks that the trace is real.",
                          size_pt=8.5,
-                         widths_in=[1.15, 1.35, 1.1, 1.25, 0.85, 1.0])
+                         widths_in=[1.15, 1.35, 1.15, 1.2, 0.8, 1.05],
+                             key="approach-comparison")
 
         # 2.2 trends and gaps
         _, h = self.anchor("2.2 Key findings")
         self.bookmark_heading(h, "Key findings, trends, and research gaps", number="2.2")
         D.add_paragraphs(h, [
-            "Four trends run through the work above. Evaluation has shifted from reference "
-            "overlap towards source entailment, because overlap metrics were shown not to track "
-            "faithfulness. Grounding has become finer, from document-level retrieval towards "
-            "passage- and sentence-level attribution. Citation classification has been "
-            "standardised but at a granularity chosen for annotation cost rather than for "
-            "downstream use. And orchestration has moved from single prompts to agent teams, "
-            "with self-critique as the usual quality mechanism.",
+            "Four trends run through the work above. Checking has moved from comparing "
+            "against a reference answer towards testing whether the output follows from the "
+            "source, because reference comparison was shown not to track correctness. What a "
+            "statement is tied to has got finer, from whole documents towards single "
+            "passages. Citation types have been standardised, but at a level of detail chosen "
+            "to make annotation cheap rather than to make the labels useful afterwards. And "
+            "orchestration has moved from single prompts to teams of agents, usually with "
+            "self-criticism as the quality mechanism.",
             "Three gaps follow, and they are what this project addresses. First, the "
-            "faithfulness literature evaluates summaries against a source document, while the "
-            "review-generation literature generates from many sources and evaluates against a "
-            "reference text; almost nothing evaluates a multi-source review against the "
-            "sources it cites, sentence by sentence. Second, citation-relation labels are used "
-            "to study fields rather than to drive synthesis: no system known to us uses a "
-            "contrasts prediction as evidence that two papers disagree and then asks an agent "
-            "to adjudicate. Third, the cost of multi-agent pipelines is rarely reported next to "
-            "their quality, so it is not possible to tell from the literature whether the extra "
-            "calls are worth making.",
-            "A fourth observation is methodological rather than a gap in the literature. Several "
-            "of the agent papers above report improvements without a time-split evaluation, on "
-            "tasks whose references may be inside the evaluated model's training data. Section "
-            "3.1 and docs/leakage.md therefore document the submission windows used here and why "
-            "the test window begins after the knowledge cutoff of every model evaluated.",
+            "support-checking work tests a summary against one source document, while the "
+            "review-writing work generates from many sources and is scored against a reference "
+            "text; almost nothing checks a many-source review against the sources it cites, "
+            "sentence by sentence. Second, citation labels are used to study how fields evolve "
+            "rather than to drive the writing: we know of no system that treats a predicted "
+            "disagreement as evidence that two papers conflict and then asks an agent to "
+            "explain it. Third, the cost of running a team of agents is rarely reported next "
+            "to its quality, so the literature does not say whether the extra calls are worth "
+            "making.",
+            "A fourth point is about method rather than subject. Several of the agent papers "
+            "report improvements without separating training and test material by date, on "
+            "tasks whose reference answers may already be inside the model being tested. "
+            "Section 3.1 and docs/leakage.md therefore record exactly which publication dates "
+            "were used here and why the test window starts after every tested model's training "
+            "cut-off.",
         ])
 
-        # 2.4 conclusion (the template's own numbering; left as 2.4)
+        # 2.4 conclusion (the template's own numbering)
         _, h = self.anchor("2.4 Conclusion")
         self.bookmark_heading(h, "Conclusion", number="2.4")
         D.add_paragraphs(h, [
-            "The components this project needs all exist and are individually well studied: "
-            "pre-trained summarisers, citation-intent classifiers, NLI-based consistency checks, "
-            "agent frameworks and retrieval-augmented generation. What has not been assembled is "
-            "a pipeline in which the citation relation is learned from real related-work "
-            "sections, every generated sentence names the evidence it rests on, a separate "
-            "discriminative model adjudicates that evidence with calibrated thresholds, and the "
-            "resulting system is measured against human-written sections on a time-split "
-            "benchmark with its cost reported alongside its quality. Chapter 3 describes that "
-            "assembly and Chapter 4 reports what it achieved, including where it did not beat "
-            "the single-call baseline.",
+            "All the pieces this project needs already exist and are well studied on their "
+            "own: pre-trained summarisers, citation classifiers, inference-based support "
+            "checks, agent frameworks and retrieval. What has not been put together is a "
+            "pipeline where the citation relation is learned from real related-work sections, "
+            "every written sentence names the evidence behind it, a separate model judges that "
+            "evidence using thresholds fitted on real examples, and the whole thing is then "
+            "measured against human-written sections on papers the models cannot have seen, "
+            "with its running cost reported next to its quality. Chapter 3 describes how that "
+            "was built and Chapter 4 reports what it achieved, including the places where it "
+            "did not beat a single well-written prompt.",
         ])
 
     # --------------------------------------------------------------- chapter 3
@@ -787,261 +819,318 @@ class ReportBuilder:
         self.bookmark_heading(h, "Methodology with diagrams", number="3.1")
 
         cur = D.add_paragraphs(h, [
-            "The system is one Python package with two execution paths over it: command-line "
-            "scripts for local runs and six Colab notebooks for the full-scale runs. The "
-            "notebooks install the package and call the same functions, so there is no second "
-            "implementation that can drift. Figure 1 shows the components and how data moves "
-            "between them.",
+            "The system is one Python package used in two ways: command-line scripts for "
+            "running locally, and six Colab notebooks for the larger runs. The notebooks "
+            "install the package and call the same functions, so there is only one copy of "
+            "the logic and the two cannot drift apart. {{FIG:fig_architecture.png}} shows the parts and how "
+            "information moves between them.",
         ])
         cur = self.figure(cur, "fig_architecture.png",
-                          "System architecture. Blue boxes are CrewAI agents, green boxes are "
-                          "fine-tuned models, red boxes are verification gates, and orange boxes "
-                          "are data or outputs. One LLM configuration serves every agent and "
-                          "logs the cost of every call.")
+                          "How the system fits together. Blue boxes are agents, green boxes "
+                          "are trained models, red boxes are checks, and orange boxes are "
+                          "data or output. One model setting serves every agent and records "
+                          "what every call cost.")
 
-        cur = D.add_heading(cur, "3.1.1  Data mining and the supervision signal")
+        cur = D.add_heading(cur, "3.1.1  Where the training data comes from")
         cur = D.add_paragraphs(cur, [
-            "The supervision for this project is reverse-engineered from published papers. A "
-            "related-work section is a literature review that a domain expert wrote for a known "
-            "set of cited papers, so mining those sections yields two things at once: citation "
-            "contexts labelled implicitly by the sentence around them, and (section, cited "
-            "abstracts) pairs that form a benchmark with a human reference. Figure 2 shows the "
-            "pipeline.",
+            "The system needs to learn what a citing sentence is claiming about the paper it "
+            "cites, and no ready-made dataset provides that at the level of detail needed. The "
+            "solution is to take it from published papers. A related-work section is a short "
+            "literature review an expert already wrote, and it names the papers it cites, so "
+            "mining those sections gives two things at once: citing sentences whose meaning is "
+            "visible from the text around them, and pairs of (cited abstracts, written "
+            "section) that form a test set with a correct answer. {{FIG:fig_mining_pipeline.png}} shows the steps.",
         ])
         cur = self.figure(cur, "fig_mining_pipeline.png",
-                          "Data-mining pipeline. Each paper's extracted LaTeX is cached as one "
-                          "JSON file and an empty cache entry records a PDF-only submission, "
-                          "which is what makes the stage resumable.")
+                          "Mining papers from arXiv. Each paper's source files are stored "
+                          "once, and a paper with no usable source is recorded as such so it "
+                          "is never downloaded twice. That is what lets the step be stopped "
+                          "and restarted.")
         cur = D.add_paragraphs(cur, [
-            "The parser handles the cases a naive implementation fails on, each of which was "
-            "found in the pilot and is covered by a unit test: several files carrying "
-            "\\documentclass (a supplement alongside the paper), related work that is a "
-            "\\subsection of a Background section or exists only as a run of \\paragraph blocks, "
-            "bibliographies in biblatex's \\entry/\\field form as well as the \\bibitem/\\newblock "
-            "families, a thebibliography block inlined in the main file, and the full set of ACL, "
-            "IEEE and ACM citation macros. A heading alone is not accepted as evidence of a "
-            "related-work section: an explicit “Related Work” heading must contain at least "
-            "one citation and a looser heading such as “Background” at least two, otherwise "
-            "a technical primer would be mined as if it were a survey.",
-            "Cited titles are resolved against OpenAlex with a fuzzy-similarity floor of 88 on "
-            "the title, so a wrong paper is rarely attached to a cite key. Papers for which "
-            "fewer than 60% of the cited works have a retrievable abstract are dropped from the "
-            "benchmark, because the task is only well posed if the system can see most of what "
-            "the human author saw.",
+            "arXiv distributes most papers as LaTeX source, which is readable text rather "
+            "than a PDF. The parser handles the awkward cases, each of which showed up in a "
+            "real paper during testing and each of which now has a test: papers with more "
+            "than one main file, related work written as a sub-section or as a run of "
+            "unnamed paragraphs rather than its own section, two different bibliography "
+            "formats, a bibliography written directly into the main file, and the various "
+            "citation commands used by different publishers.",
+            "A heading on its own is not treated as proof that a section is a literature "
+            "review. A section actually titled \u201cRelated Work\u201d must contain at least "
+            "one citation, and a vaguer heading such as \u201cBackground\u201d must contain at "
+            "least two. Without that rule a section explaining standard theory would be mined "
+            "as though it were a survey.",
+            "Cited papers then have to be identified. Where the bibliography gives a DOI or an "
+            "arXiv number, that number identifies the paper exactly, and those are looked up "
+            "in batches. Only where no identifier exists does the system fall back to "
+            "searching by title, which is both slower and less certain; a title match is "
+            "accepted only above a similarity threshold, so the wrong paper is rarely "
+            "attached. Papers for which fewer than 60% of the cited works could be found with "
+            "an abstract are dropped from the test set, because the task is only fair if the "
+            "system can see most of what the original author saw.",
         ])
 
-        cur = D.add_heading(cur, "3.1.2  Citation-relation classification (component A)")
+        cur = D.add_heading(cur, "3.1.2  Telling citation types apart")
         cur = D.add_paragraphs(cur, [
-            "The taxonomy has seven labels: background, uses-method, uses-data, extends, "
-            "compares-against, supports and contrasts. The cut that matters is between "
-            "compares-against and contrasts: a baseline comparison is not a disagreement, and "
-            "only the latter is evidence that two papers conflict. Because labels overlap in "
-            "practice, an ordered set of tie-break rules decides: disagreement outranks "
-            "agreement, which outranks extension, which outranks comparison, which outranks data "
-            "use, which outranks method use, with background as the default. The definitions and "
-            "the rules live in one module so the LLM prompt, the human labelling guide and the "
-            "training code cannot diverge.",
-            f"SciCite {C('Structural Scaffolds')} and ACL-ARC "
-            f"{C('Measuring the Evolution of a Scientific Field')} are mapped onto this taxonomy "
-            f"as additional training signal. The mapping is lossy and is documented as such: "
-            f"SciCite's method class does not separate adopting a method from extending it, and "
-            f"its result class covers comparison, agreement and disagreement alike; ACL-ARC's "
-            f"Uses does not separate method from data and its CompareOrContrast merges neutral "
-            f"comparison with explicit disagreement, while its Future class has no counterpart "
-            f"and is dropped. Mapped rows are therefore never used as evaluation gold.",
-            "The classifier is SciBERT fine-tuned for sequence-pair classification. The first "
-            "segment is the citation context with the citation under question rewritten to "
-            "[[CITED]] and every other citation in the sentence rewritten to [OTHER], which is "
-            "what makes the label well defined for a sentence that cites several papers at once; "
-            "the second segment is the cited paper's title. The dev split is taken by citing "
-            "paper rather than by row, because sentences from one paper are highly correlated "
-            "and a random split would leak. Class weights are inverse-frequency,",
+            "Seven labels are used: background, uses-method, uses-data, extends, "
+            "compares-against, supports and contrasts. The split that matters most is between "
+            "the last three. Running another paper's method as a baseline and reporting a "
+            "better score is compares-against, which is a measurement. Saying your results "
+            "agree with theirs is supports. Saying their conclusion does not hold is "
+            "contrasts, and only that last one is evidence that two papers actually conflict.",
+            "Because real sentences often fit more than one label, the rules are applied in a "
+            "fixed order: disagreement beats agreement, which beats extending, which beats "
+            "comparing, which beats using data, which beats using a method, with background as "
+            "the fallback. The definitions and this order live in one file, so the instructions "
+            "given to the labelling model, the guide a human labeller follows and the training "
+            "code cannot disagree about what a label means.",
+            f"Two published datasets, SciCite {C('Structural Scaffolds')} and ACL-ARC "
+            f"{C('Measuring the Evolution of a Scientific Field')}, are mapped onto these "
+            f"seven labels to provide extra training examples. The mapping loses information "
+            f"and the report says where: SciCite's \u201cmethod\u201d class does not separate "
+            f"using a method from improving it, and its \u201cresult\u201d class covers "
+            f"comparing, agreeing and disagreeing alike; ACL-ARC's \u201cuses\u201d does not "
+            f"separate method from data, and its \u201ccompare or contrast\u201d merges neutral "
+            f"comparison with real disagreement. Because of that, mapped examples are used "
+            f"only to help training and never to score anything.",
+            "The classifier is SciBERT, fine-tuned to read a pair of texts. The first is the "
+            "citing sentence with the citation in question replaced by a marker and any other "
+            "citations in the same sentence replaced by a different marker \u2014 without that, "
+            "a sentence citing five papers at once would have no single correct answer. The "
+            "second is the cited paper's title. The data is split by paper rather than by "
+            "sentence, because sentences from one paper resemble each other and a random split "
+            "would let the model see the answer. Rare labels are weighted more heavily so they "
+            "can be learned at all:",
         ])
         cur = self.equation(cur, r"$w_c \;=\; \dfrac{N}{K\,n_c}$", "3.1", width_in=3.2)
         cur = D.add_paragraphs(cur, [
-            "where N is the number of training rows, K the number of classes and n⟨c⟩ the count "
-            "of class c, so that the rare relations are learnable at all. Performance is reported "
-            "as macro-F1 over the classes present in the gold set,",
+            "where N is the number of training sentences, K the number of labels and n\u27e8c\u27e9 "
+            "how many times label c appears. Results are reported as macro-F1, which averages "
+            "the score for each label separately:",
         ], first_line_indent=None)
         cur = self.equation(cur, r"$\mathrm{F1}_{\mathrm{macro}} \;=\; \frac{1}{|\mathcal{C}|}"
                                  r"\sum_{c \in \mathcal{C}} \frac{2 P_c R_c}{P_c + R_c}$",
                             "3.2", width_in=4.2)
         cur = D.add_paragraphs(cur, [
-            "with P⟨c⟩ and R⟨c⟩ the precision and recall of class c, because accuracy on this "
-            "distribution is dominated by background and would hide exactly the classes the "
-            "downstream stages need. Agreement between the LLM labeller and the adjudicated gold set "
-            "is reported as Cohen's κ,",
+            "with P\u27e8c\u27e9 and R\u27e8c\u27e9 the precision and recall for label c. Plain "
+            "accuracy would be misleading here, because most citations are background and a "
+            "model that only ever predicted background would score well while being useless "
+            "for everything that follows. Agreement between the machine labels and the "
+            "hand-checked ones is reported as Cohen's kappa:",
         ], first_line_indent=None)
         cur = self.equation(cur, r"$\kappa \;=\; \dfrac{p_o - p_e}{1 - p_e}$", "3.3",
                             width_in=2.8)
         cur = D.add_paragraphs(cur, [
-            "where p⟨o⟩ is the observed agreement and p⟨e⟩ the agreement expected from the two "
-            "label distributions independently, so that a labeller that simply predicts the "
-            "majority class scores near zero rather than near its accuracy.",
+            "where p\u27e8o\u27e9 is how often the two agree and p\u27e8e\u27e9 is how often they "
+            "would agree by chance given how often each uses each label. Subtracting the "
+            "chance agreement means a labeller that simply guesses the most common answer "
+            "scores near zero rather than near its raw accuracy.",
         ], first_line_indent=None)
 
-        cur = D.add_heading(cur, "3.1.3  Extraction and verification")
+        cur = D.add_heading(cur, "3.1.3  Pulling out claims and checking them")
         cur = D.add_paragraphs(cur, [
-            "The Extractor turns a paper into a PaperRecord: task, methods, datasets, metrics "
-            "with values and settings, limitations, and three to six claims. Each claim carries "
-            "an evidence object with the section it came from and a passage copied verbatim from "
-            "the input. The input is the abstract plus whatever introduction, results, conclusion "
-            "and limitations text the LaTeX source yielded, under a fixed character budget, and "
-            "that exact input string is stored with the record, because the quote check is "
-            "defined against it and not against the paper in the abstract.",
-            f"The Verifier applies two independent checks. The first asks whether the quoted "
-            f"passage really occurs in the input, scored by the fuzzy partial ratio of the "
-            f"normalised passage against the normalised source rather than by exact matching, "
-            f"because LaTeX-to-text conversion leaves whitespace and ligature noise that a "
-            f"faithful quote still trips over. The second asks whether the claim is entailed by "
-            f"the passage, using a DeBERTa-v3 {C('DeBERTa')} model trained on MNLI, FEVER and "
-            f"ANLI, applied at sentence granularity as SummaC {C('SummaC')} recommends. A claim "
-            f"can quote correctly and still overstate what the passage says, and the second check "
-            f"is what catches that.",
-            "A verdict is supported when the quote score clears its threshold and the entailment "
-            "probability clears the upper threshold, partially when the entailment probability "
-            "falls between the two thresholds, and unsupported otherwise. The three thresholds "
-            "are not chosen by hand: they are fitted by grid search on a hand-checked dev set of "
-            "claim/evidence pairs, maximising macro-F1 over the three verdicts rather than "
-            "accuracy, so a threshold pair cannot be selected for doing well on the majority "
-            "verdict alone. Section 4.3 reports the fitted values and how they compare with the "
-            "defaults.",
-            "At review time the same model scores each generated sentence against the evidence of "
-            "the claims whose identifiers the Writer attached to it. The faithfulness score is "
-            "the fraction of sentences the Verifier calls supported,",
+            "The Extractor turns a paper into a structured record: what problem it tackles, "
+            "what methods and datasets it uses, what numbers it reports, what it admits it "
+            "cannot do, and three to five claims. Each claim carries a short line copied word "
+            "for word out of the paper as its evidence. The input is the abstract plus "
+            "whatever introduction, results, conclusion and limitations text the source file "
+            "provided, up to a fixed length, and that exact input is stored with the record, "
+            "because the next check is defined against it and not against the paper in "
+            "general.",
+            f"The checker then runs two tests that can fail independently. The first asks "
+            f"whether the quoted line really appears in the text the Extractor was given. It "
+            f"uses approximate rather than exact matching, because converting LaTeX to plain "
+            f"text leaves spacing and punctuation differences that an honest quote still trips "
+            f"over. The second asks whether the claim actually follows from that line, using a "
+            f"DeBERTa model {C('DeBERTa')} trained on inference datasets, applied one sentence "
+            f"at a time as SummaC {C('SummaC')} recommends.",
+            "Both tests are needed, and the reason is the heart of this project. During "
+            "testing the Extractor produced a claim whose quote matched the source perfectly "
+            "and which the same quote did not support at all: it had copied the line correctly "
+            "and then written something stronger than the line said. A single check would have "
+            "passed it.",
+            "A claim is called supported when the quote matches and the inference score is "
+            "high, partially supported when the inference score is in the middle, and "
+            "unsupported otherwise. The thresholds are not picked by hand. They are chosen by "
+            "trying every combination on a sample labelled by hand and keeping the one with "
+            "the best macro-F1 across the three outcomes, so a setting cannot be chosen just "
+            "because it does well on the most common outcome. Section 4.3 reports the values "
+            "that were chosen.",
+            "When the review is written, the same model scores each sentence against the "
+            "evidence behind the claims the Writer attached to it. The faithfulness score is "
+            "the share of sentences that come out supported:",
         ])
         cur = self.equation(
             cur, r"$\mathrm{Faith} \;=\; \frac{1}{|S|}\sum_{s \in S}"
                  r"\mathbb{1}\!\left[\max_{e \in E(s)} P_{\mathrm{ent}}(s \mid e) "
                  r"\geq \tau_{\mathrm{sup}}\right]$", "3.4", width_in=5.0)
         cur = D.add_paragraphs(cur, [
-            "where E(s) is the set of evidence passages behind sentence s and τ⟨sup⟩ is the "
-            "fitted upper threshold. A sentence that cites nothing has an empty evidence set and "
-            "is unsupported by construction, which is the intended behaviour for a review that "
-            "claims to be grounded. Sentences the Verifier rejects go back to the Writer once; "
-            "if the revision does not improve the score the draft is kept and the offending "
-            "sentences are flagged in the output rather than silently removed.",
+            "where E(s) is the set of quoted lines behind sentence s and \u03c4\u27e8sup\u27e9 is "
+            "the chosen threshold. A sentence that cites nothing has no evidence and so counts "
+            "as unsupported, which is the behaviour wanted from a system that claims every "
+            "sentence is grounded. Sentences that fail go back to the Writer once; if the "
+            "rewrite does not score better, the first version is kept and the failing "
+            "sentences are marked in the output rather than quietly deleted.",
         ], first_line_indent=None)
 
-        cur = D.add_heading(cur, "3.1.4  Consensus, contradictions and gaps")
+        cur = D.add_heading(cur, "3.1.4  Comparing papers and finding gaps")
         cur = D.add_paragraphs(cur, [
-            "Dataset, metric, method and task names are normalised in three stages, cheapest "
-            "first: a manual alias table checked into the repository, then fuzzy matching against "
-            "the canonical names, then sentence embeddings for paraphrases that fuzzy matching "
-            "misses. Anything still unmatched keeps a tidied version of its surface form and is "
-            "reported, which is how the alias file gets extended rather than how information gets "
-            "lost.",
-            "Records are then grouped by (task, dataset, metric). Within a group, a relative "
-            "spread wider than 15% of the group median is flagged as a value disagreement, and "
-            "two papers that order the same pair of methods oppositely on the same dataset and "
-            "metric are flagged as a ranking disagreement. Independently, a contrasts edge "
-            "predicted by the classifier is flagged as a disagreement the authors themselves "
-            "asserted, which numbers alone cannot reveal. Each flagged contradiction goes to the "
-            "Adjudicator, which must classify it as a different setting, a different split or "
-            "metric definition, a genuine disagreement, or insufficient evidence, using only the "
-            "quoted evidence passages.",
-            "Gap detection builds a method-family × dataset matrix of paper counts. An empty "
-            "or near-empty cell whose row and column are both otherwise active is a candidate "
-            "gap, scored by how far the count falls below the count expected if row and column "
-            "activity were independent. Two method families that both appear on a dataset but "
-            "between whose papers no compares-against edge exists form an untested-comparison "
-            "candidate. Because an empty cell is often empty for a good reason, the Gap Analyst "
-            "is required to argue both for and against each candidate before giving a verdict, "
-            "and both arguments are kept in the output.",
+            "Papers name the same thing in different ways, so dataset, metric, method and task "
+            "names are tidied up in three stages, cheapest first: a hand-written list of known "
+            "alternative names kept in the repository, then approximate string matching, then "
+            "meaning-based matching for cases the first two miss. Anything still unmatched "
+            "keeps its original form and is reported, so names are never silently thrown away "
+            "and the list of known alternatives can be extended.",
+            "Records are then grouped by task, dataset and metric. Inside a group, numbers "
+            "that differ by more than 15% of the middle value are flagged as a disagreement "
+            "about results, and two papers that rank the same pair of methods in opposite "
+            "orders on the same dataset are flagged as a disagreement about ranking. "
+            "Separately, a contrasts link predicted by the classifier is flagged as a "
+            "disagreement the authors stated themselves, which no comparison of numbers could "
+            "reveal. Every flagged case goes to an agent that must decide whether it is "
+            "explained by a different experimental setup, a different split or metric "
+            "definition, a real disagreement, or not enough information \u2014 using only the "
+            "quoted evidence.",
+            "Gap detection builds a table of how many papers apply each family of method to "
+            "each dataset. A cell that is empty or nearly empty, where both its row and its "
+            "column are otherwise busy, becomes a candidate gap. Two method families that both "
+            "appear on a dataset but between whose papers no comparison link exists become a "
+            "candidate of a different kind. Because an empty cell is often empty for a good "
+            "reason, the agent is required to argue both for and against each candidate before "
+            "giving a verdict, and both arguments are kept in the output.",
         ])
 
-        cur = D.add_heading(cur, "3.1.5  Orchestration")
+        cur = D.add_heading(cur, "3.1.5  Putting the steps in order")
         cur = D.add_paragraphs(cur, [
-            "The pipeline is a CrewAI Flow of ten steps, shown in Figure 3. Roles are narrow on "
-            "purpose: the Librarian has search, snowballing and reference-verification tools and "
-            "nothing else; the Extractor has no tools at all because its input is handed to it; "
-            "only the Verifier may call the entailment tool; and the Writer can neither search "
-            "nor verify. The approval checkpoint after corpus collection is a real gate, not a "
-            "formality: the Flow stops and the corpus table is shown before any LLM call is spent "
-            "on extraction.",
+            "The pipeline is a CrewAI flow of ten steps, shown in {{FIG:fig_flow.png}}. Each agent is kept "
+            "deliberately narrow. The Librarian has search tools and nothing else. The "
+            "Extractor has no tools at all, because its text is handed to it. Only the "
+            "Verifier may run the checking model. The Writer can neither search nor check its "
+            "own output. The approval point after the corpus is collected is a real stop, not "
+            "a formality: the flow pauses and shows the list of papers before any money or "
+            "quota is spent on reading them.",
         ])
         cur = self.figure(cur, "fig_flow.png",
-                          "The ten Flow steps, the human approval gate and the single revision "
-                          "loop. Every step caches its output, so an interrupted run resumes.")
+                          "The ten steps, the point where a human approves the paper list, "
+                          "and the single rewrite loop. Every step saves its output before "
+                          "the next begins, so an interrupted run carries on where it stopped.")
         cur = D.add_paragraphs(cur, [
-            "Every step writes its output to the run directory before the next begins, which is "
-            "what lets a run that dies against a rate limit continue rather than restart. The "
-            "same property is what makes the Colab notebooks usable at all under a 12-hour "
-            "session limit.",
+            "Saving after every step is what makes an interrupted run recoverable rather than "
+            "wasted, and that matters more than it sounds. Free accounts impose limits that "
+            "stop work part-way through, and a free cloud session ends after a fixed time. "
+            "Both happened repeatedly while this project was built.",
         ])
 
-        cur = D.add_heading(cur, "3.1.6  Distillation (component B)")
+        cur = D.add_heading(cur, "3.1.6  Compressing the extractor into a small model")
         cur = D.add_paragraphs(cur, [
-            f"The distillation set is built by running the hosted Extractor over training-split "
-            f"papers and keeping only those papers whose every claim passed the Verifier. The "
-            f"Verifier is therefore the filter on the student's training data, which is the point "
-            f"of the stage: the student cannot learn to fabricate evidence that the teacher "
-            f"happened to get away with. The student is a small instruction-tuned model "
-            f"{C('Qwen2.5 Technical Report')} adapted with QLoRA {C('QLoRA')} — a 4-bit NF4 "
-            f"base with low-rank adapters on the attention and MLP projections — which is what "
-            f"makes the fine-tune fit on a free T4. The comparison against the hosted extractor "
-            f"is on held-out test-split papers and covers JSON validity, the Verifier's own "
-            f"verdicts on the resulting claims, field-level agreement, latency and cost.",
+            f"The training set for the small model is built by running the hosted Extractor "
+            f"over training papers and keeping only those papers where every claim passed the "
+            f"checker. That is the point of the step: the checker decides what the small model "
+            f"is allowed to learn from, so it cannot copy mistakes the larger model happened "
+            f"to get away with. The small model {C('Qwen2.5 Technical Report')} is adapted "
+            f"using QLoRA {C('QLoRA')}, a method that stores the original model in a "
+            f"compressed form and trains only a small number of added parameters, which is "
+            f"what makes the training fit on a free cloud GPU. It is then compared against the "
+            f"hosted model on papers neither has seen.",
         ])
 
-        cur = D.add_heading(cur, "3.1.7  Evaluation design")
+        cur = D.add_heading(cur, "3.1.7  How the systems are compared")
         cur = D.add_paragraphs(cur, [
-            "The benchmark task is: given only the papers a real related-work section cites, "
-            "regenerate that section. Four systems and one ablation are compared under the same "
-            "model and settings. S1 is a single well-prompted call over the same cited abstracts. "
-            "S2 is the crew without the Verifier. S3 is the full crew. S4 is the full crew with "
-            "the distilled extractor. The ablation is S3 with the relation classifier switched "
-            "off, which isolates the contribution of component A.",
-            "Overlap metrics (ROUGE-1/2/L and BERTScore against the human section) are reported "
-            "beside three grounding metrics, because overlap says nothing about truth. Citation "
-            "coverage is the fraction of the papers the human section cited that the generated "
-            "section discusses, counted either by an inline identifier or by a distinctive "
-            "overlap with the paper's title, so that a system which paraphrases instead of using "
-            "identifiers is not scored at zero unfairly. Citation correctness is the fraction of "
-            "asserted (sentence, cited paper) pairs for which that paper's evidence actually "
-            "entails the sentence; it is the metric that catches a real identifier attached to a "
-            "sentence the paper never supported. Faithfulness is as in equation (3.4).",
-            "Every mean is reported with a percentile bootstrap 95% confidence interval,",
+            "The test is: given only the papers a real related-work section cites, write that "
+            "section. Four systems and one cut-down version are compared using the same model "
+            "and the same settings. S1 is a single well-written prompt over the same "
+            "abstracts. S2 is the agent team with the checker switched off. S3 is the full "
+            "team. S4 is the full team using the small extractor. The cut-down version is S3 "
+            "with the citation classifier switched off, which isolates what that classifier "
+            "contributes.",
+            "Overlap with the human text is measured by ROUGE and BERTScore, but reported "
+            "beside three other measures, because overlap says nothing about whether the text "
+            "is true. Citation coverage is the share of the papers the human section cited "
+            "that the generated section discusses at all. Citation correctness is the share of "
+            "claimed links between a sentence and a paper where that paper's evidence actually "
+            "supports the sentence; this is the measure that catches a real citation attached "
+            "to a sentence the paper never supported. Faithfulness is as defined in equation "
+            "(3.4).",
+            "Every average is reported with a confidence interval computed by resampling:",
         ])
         cur = self.equation(
             cur, r"$\mathrm{CI}_{95} = \left[\hat{\theta}^{*}_{(0.025B)},\;"
                  r"\hat{\theta}^{*}_{(0.975B)}\right],\quad B = 2000$", "3.5", width_in=4.4)
         cur = D.add_paragraphs(cur, [
-            "where the resampled statistics are the means of B bootstrap resamples of the "
-            "per-example scores. At pilot sample sizes these intervals are wide, and reporting "
-            "them is what prevents a difference of a few ROUGE points from being read as a "
-            "result.",
-            "Leakage is controlled by the submission window. Training papers come from 2023-2024 "
-            "and test papers from a window that begins after the knowledge cutoff of every model "
-            "evaluated. The Verifier's thresholds, the classifier's dev split and the adjudicated gold "
-            "set all come from the training split, so nothing is tuned on the benchmark. The "
-            "dates and the residual risks — chiefly that the cited papers are necessarily old "
-            "and so plausibly inside every model's training data, even though the target text is "
-            "not — are recorded in docs/leakage.md and in Section 4.1.",
+            "which means the test set is resampled two thousand times and the range covering "
+            "the middle 95% of the resulting averages is reported. At the sample sizes used "
+            "here those ranges are wide, and showing them is what stops a difference of a few "
+            "points being read as a result.",
+            "Finally, the test papers are chosen by publication date. Training papers come "
+            "from 2023 and 2024 and test papers from a window that begins after the training "
+            "cut-off of every model being tested, so no system can have read the answer. The "
+            "thresholds, the classifier's development split and the hand-labelled set all come "
+            "from the training side, so nothing is tuned on the test set. The dates and the "
+            "risks that remain \u2014 chiefly that the cited papers are necessarily older and so "
+            "probably were in the models' training data, even though the text being scored was "
+            "not \u2014 are recorded in docs/leakage.md and in Section 4.1.",
+        ], first_line_indent=None)
+
+        cur = D.add_heading(cur, "3.1.8  Looking at what the system produced")
+        cur = D.add_paragraphs(cur, [
+            "Everything the pipeline writes is a file, which is reliable but hard to read. A "
+            "small web application was therefore built on top of the same files, so the state "
+            "of a run and the evidence behind a sentence can be inspected directly. It adds no "
+            "logic of its own: it reads the same results files this report quotes, through the "
+            "same module, so the two cannot disagree about a number. {{FIG:fig_console_overview.png}} shows the "
+            "overview, which marks a step as pending when its results file does not exist "
+            "rather than showing an estimate.",
+        ])
+        cur = self.figure(cur, "fig_console_overview.png",
+                          "The console's overview. Each step shows real figures from the file "
+                          "it wrote, and a step that has not run is marked pending instead of "
+                          "being filled in with a guess.", width_in=5.9)
+        cur = D.add_paragraphs(cur, [
+            "The most useful view is the test set itself, in {{FIG:fig_console_benchmark.png}}. Opening a paper shows "
+            "the related-work section its author actually wrote, which is hidden from every "
+            "system and used only for scoring, beside the abstracts that are the only input a "
+            "system receives. References whose abstract could not be found are greyed out. "
+            "Seeing the two together makes the difficulty of the task concrete in a way a "
+            "table of scores does not.",
+        ])
+        cur = self.figure(cur, "fig_console_benchmark.png",
+                          "A test example in the console: the section the author wrote, above "
+                          "the cited papers' abstracts that are the only input a system is "
+                          "given. Greyed-out entries are references whose abstract could not "
+                          "be retrieved.", width_in=5.9)
+        cur = D.add_paragraphs(cur, [
+            "A third view shows a generated review one sentence at a time. Clicking a sentence "
+            "shows the quoted line it was checked against and the score it received, and "
+            "sentences are underlined green, orange or red according to the outcome. The same "
+            "information is also available to a conversational assistant through a small "
+            "read-only interface, so the state of a run can be asked about in words rather "
+            "than read off a screen.",
         ])
 
         # 3.2 system requirements
         _, h = self.anchor("3.2 System requirements")
         self.bookmark_heading(h, "System requirements", number="3.2")
         cur = D.add_paragraphs(h, [
-            "The project is built to run in two places: a free Colab T4 session for the heavy "
-            "stages, and an Apple Silicon laptop with Metal acceleration for development and the "
-            "pilot runs reported in Chapter 4. Table 2 lists what was actually used; the "
-            "versions are those recorded at run time, not the minimum the code would tolerate.",
+            "The project is built to run in two places: a free Google Colab session with a T4 "
+            "GPU for the heavier steps, and an Apple Silicon laptop for development and for "
+            "the smaller runs reported in Chapter 4. {{TAB:system-requirements}} lists what was actually used. The "
+            "version numbers are the ones recorded while the code ran, not the oldest versions "
+            "it would tolerate.",
         ])
         env = self.environment_rows()
         cur = self.table(cur, env,
-                         "System requirements and the exact versions used for the runs reported "
-                         "in Chapter 4.", size_pt=9.0, widths_in=[1.7, 2.1, 2.3])
+                         "What the system was run on, and the exact versions used for the "
+                         "results in Chapter 4.", size_pt=9.0, widths_in=[1.7, 2.1, 2.3],
+                             key="system-requirements")
         D.add_paragraphs(cur, [
-            "API access is through a free tier, which shapes the design more than the hardware "
-            "does. The rate limiter is a token bucket on both requests and tokens per minute, "
-            "configured per provider; every long-running step is append-only and keyed, so "
-            "exhausting a daily quota means resuming tomorrow rather than starting again; and "
-            "relation labelling batches several contexts into one request, which is roughly an "
-            "eightfold saving on the request budget. No API key appears anywhere in the "
-            "repository: keys are read from Colab secrets when running there and from a "
-            "gitignored .env file otherwise.",
+            "The free API account shapes the design more than the hardware does. It imposes "
+            "four separate limits \u2014 on requests per day, on tokens per minute, on generated "
+            "tokens per minute, and on tokens per day \u2014 and each one was hit while building "
+            "this project. The code now keeps track of all four before sending a request, asks "
+            "for only as many output tokens as a reply actually needs, and treats a daily limit "
+            "as a reason to stop and report rather than to keep retrying. Every long step is "
+            "written to disk as it goes, so running out of quota means continuing tomorrow "
+            "rather than starting again. No key is stored in the repository: keys are read "
+            "from the environment, or from Colab's secret store when running there.",
         ])
 
     def environment_rows(self) -> list[list[str]]:
@@ -1134,10 +1223,70 @@ class ReportBuilder:
                 "and the benchmark reported below is therefore a lower bound on what this "
                 "corpus yields.")
         parts.append(
-            "The gap between a reference being identified and its abstract being retrievable "
-            "is the main reason benchmark examples are dropped, since a paper can be "
-            "identified without an abstract being available to redistribute.")
+            "The gap between finding a reference and being able to read its abstract "
+            "is the main reason test examples are dropped: a paper can be identified "
+            "without its abstract being available to redistribute.")
         return " ".join(parts)
+
+    REF_TOKEN = re.compile(r"\{\{(FIG|TAB):([^}]+)\}\}")
+
+    def resolve_refs(self) -> None:
+        """Replace reference tokens with the numbers the captions actually got.
+
+        Prose usually mentions a figure before the figure is inserted, so writing
+        the number by hand means it silently goes stale the moment a figure is
+        added anywhere earlier. Prose writes a token instead and this pass fills
+        in the real number, which is also what keeps every figure referenced.
+        """
+        fig_by = {it["source"]: it["n"] for it in self.fig.items}
+        tab_by = {it["source"]: it["n"] for it in self.tab.items}
+
+        def sub(m):
+            kind, name = m.group(1), m.group(2)
+            table = fig_by if kind == "FIG" else tab_by
+            n = table.get(name)
+            if n is None:
+                self.unresolved_refs.append(f"{kind}:{name}")
+                return "the figure below" if kind == "FIG" else "the table below"
+            return f"{'Figure' if kind == 'FIG' else 'Table'} {n}"
+
+        def walk(par):
+            if "{{" not in par.text:
+                return
+            for r in par.runs:
+                if "{{" in (r.text or ""):
+                    r.text = self.REF_TOKEN.sub(sub, r.text)
+            if "{{" in par.text:                   # token split across runs
+                D.set_text(par, self.REF_TOKEN.sub(sub, par.text))
+
+        for par in self.doc.paragraphs:
+            walk(par)
+        for t in self.doc.tables:
+            for row in t.rows:
+                for cell in row.cells:
+                    for par in cell.paragraphs:
+                        walk(par)
+
+    def demo_run(self) -> dict | None:
+        """The saved demonstration run, if one exists.
+
+        A demo regenerates one benchmark paper's related-work section from only
+        the abstracts it cites, which is the whole task in miniature and the one
+        place in this report where a reader can see a generated sentence, the
+        line it was checked against, and the score side by side.
+        """
+        root = paths().results / "flow_runs"
+        if not root.exists():
+            return None
+        dirs = sorted(d for d in root.glob("demo_*") if (d / "summary.json").exists())
+        if not dirs:
+            return None
+        d = dirs[-1]
+        out = {"dir": d}
+        for name in ("summary", "review_verdicts", "reference"):
+            f = d / f"{name}.json"
+            out[name] = json.loads(f.read_text()) if f.exists() else {}
+        return out
 
     def chapter4(self) -> None:
         R, C = self.R, self.refs.cite
@@ -1146,11 +1295,11 @@ class ReportBuilder:
         _, title = self.anchor("ANALYSIS AND DISCUSSION")
 
         cur = D.add_paragraphs(title, [
-            "Every number in this chapter is read from a file in results/ that the code wrote, "
-            "and every figure is generated from those files by scripts/make_figures.py. Where a "
-            "stage was not run, that is stated rather than estimated. The scale of each run is "
-            "given with its results, because pilot-scale confidence intervals are wide and a "
-            "point estimate on its own would overclaim.",
+            "Every number in this chapter comes from a file in results/ that the code "
+            "wrote, and every figure is drawn from those files by one script. Where a step "
+            "was not run, the chapter says so instead of estimating. The size of each run is "
+            "given with its results, because these are small runs and a single number without "
+            "its uncertainty would claim more than the evidence supports.",
         ])
 
         # ---------------------------------------------------------- 4.1 data
@@ -1169,13 +1318,14 @@ class ReportBuilder:
                 f"{(cfg.get('test_window') or ['', '?'])[1][:6]}). Of those, "
                 f"{listed - (y.get('no_source') or 0)} had usable LaTeX source "
                 f"({100 * (listed - (y.get('no_source') or 0)) / listed:.0f}%); the remainder are "
-                f"PDF-only submissions, which arXiv permits and which no parser can recover. "
+                f"papers submitted only as a PDF, which arXiv allows and which no parser "
+                f"can read. "
                 f"{y.get('parsed')} parsed successfully and {y.get('with_related_work')} had an "
                 f"identifiable related-work section "
                 f"({100 * (y.get('with_related_work') or 0) / listed:.0f}% of papers listed). "
                 f"After requiring at least three cited works and at least 60% abstract coverage, "
                 f"{ds.get('rw_pairs_kept')} papers remain as benchmark examples and "
-                f"{ds.get('contexts_rows'):,} citation contexts were written. Figure 4 shows the "
+                f"{ds.get('contexts_rows'):,} citation contexts were written. {{FIG:fig_stage1_yield.png}} shows how many survive each step and {{TAB:stage1-yield}} gives the same figures as a table; {{FIG:fig_dataset_stats.png}} shows the "
                 f"attrition at each step.",
                 self.resolution_paragraph(),
             ])
@@ -1194,7 +1344,8 @@ class ReportBuilder:
                 rows.append([label, f"{v:,}" if isinstance(v, int) else NA,
                              f"{100 * v / listed:.1f}%" if isinstance(v, int) else NA])
             cur = self.table(cur, rows, "Stage 1 mining yield at pilot scale.",
-                             size_pt=9.5, widths_in=[2.8, 1.2, 1.2], align_right_cols=(1, 2))
+                             size_pt=9.5, widths_in=[2.8, 1.2, 1.2], align_right_cols=(1, 2),
+                                 key="stage1-yield")
 
             if R.has("stage1_dataset_stats.json"):
                 S = R.get("stage1_dataset_stats.json") or {}
@@ -1222,7 +1373,8 @@ class ReportBuilder:
                 cur = self.table(cur, rows,
                                  "Dataset statistics for the mined arXiv benchmark and the "
                                  "external Multi-XScience benchmark.",
-                                 size_pt=9.5, widths_in=[2.9, 1.3, 1.3], align_right_cols=(1, 2))
+                                 size_pt=9.5, widths_in=[2.9, 1.3, 1.3], align_right_cols=(1, 2),
+                                     key="dataset-stats")
                 cur = D.add_paragraphs(cur, [
                     f"The time split is disjoint: the newest training paper is dated "
                     f"{ts.get('train_latest')} and the oldest test paper "
@@ -1230,11 +1382,11 @@ class ReportBuilder:
                     f"The time split check reports train_latest={ts.get('train_latest')} and "
                     f"test_earliest={ts.get('test_earliest')}; these are not disjoint and the "
                     f"benchmark should not be used until the windows are corrected.",
-                    "The residual leakage risk is that the cited papers, being older than the "
-                    "citing paper by construction, are plausibly inside every evaluated model's "
-                    "training data. That cannot be avoided for this task and it does not give a "
-                    "model access to the target text, which is what is scored; it is recorded "
-                    "here rather than dismissed.",
+                    "One risk remains and is worth stating. The cited papers are "
+                    "necessarily older than the paper citing them, so they were probably in "
+                    "the training data of every model tested. That cannot be avoided for this "
+                    "task. It does not give a model the text being scored, which is the "
+                    "section itself, but it does mean the subject matter may be familiar.",
                 ])
         else:
             cur = self._not_run(cur, "Stage 1 mining", "results/stage1_yield.json is absent.",
@@ -1250,29 +1402,32 @@ class ReportBuilder:
             if lab:
                 cur = D.add_paragraphs(cur, [
                     f"{lab:,} citation contexts were labelled by the configured LLM in batches "
-                    f"of eight, each label accompanied by a short rationale that had to quote "
-                    f"the cue words from the context. Figure 6 shows the resulting distribution, "
-                    f"which is dominated by background as expected.",
+                    f"of eight, each label accompanied by a short reason that had to quote "
+                    f"the words in the sentence that justified it. The distribution is "
+                    f"dominated by background, as expected: most citations simply point at "
+                    f"earlier work without using or disputing it.",
                 ])
                 cur = self.figure(cur, "fig_label_distribution.png",
                                   "Distribution of LLM-assigned citation relations over the "
                                   "labelled pool.")
             if lvg:
                 cur = D.add_paragraphs(cur, [
-                    f"A gold set of {ag.get('n_gold')} contexts was labelled without "
-                    f"sight of the LLM's labels, stratified over the LLM's predictions so that "
-                    f"the rare relations appear at all. The provenance of these labels matters "
-                    f"and is stated plainly: they were assigned by the AI assistant that built "
-                    f"this pipeline, working from the written labelling guide and blind to the "
-                    f"labeller's output, and then reviewed by the author. They are an "
-                    f"independent second opinion, not an expert human annotation, and the "
-                    f"agreement figures below should be read as such. Against that gold set the LLM labeller "
+                    f"A gold set of {ag.get('n_gold')} citation sentences was labelled "
+                    f"without seeing the machine's answers, and deliberately sampled "
+                    f"so the rare labels appear at all rather than being swamped by "
+                    f"background. Who produced these labels matters, so it is stated "
+                    f"plainly: they were assigned by the AI assistant that built this "
+                    f"pipeline, following the written guide and blind to the "
+                    f"labeller's output, then reviewed by the author. That is an "
+                    f"independent second opinion, not expert human annotation, and "
+                    f"the agreement figures should be read that way. Against this set "
+                    f"the machine labeller "
                     f"reaches {lvg.get('accuracy', 0):.3f} accuracy and "
-                    f"{lvg.get('macro_f1', 0):.3f} macro-F1, with Cohen's κ = "
+                    f"{lvg.get('macro_f1', 0):.3f} macro-F1, with a kappa of "
                     f"{lvg.get('cohen_kappa', 0):.3f}. Because the sample is stratified rather "
-                    f"than random, this is not an estimate of accuracy on an arbitrary citation "
-                    f"context: it deliberately over-weights the classes the labeller finds "
-                    f"hardest, and should be read as a lower bound.",
+                    f"than random, this is not how accurate the labeller would be on a "
+                    f"sentence picked at random: the sample is weighted towards the cases it "
+                    f"finds hardest, so the figure is a lower bound.",
                 ])
             if bench:
                 rows = [["System", "Accuracy", "Macro-F1"]]
@@ -1286,21 +1441,24 @@ class ReportBuilder:
                 cur = self.table(cur, rows,
                                  f"Citation-relation classification on the "
                                  f"{bench.get('n_gold', '?')}-context adjudicated gold set. The gold "
-                                 f"set is stratified over the LLM's predictions, so absolute "
-                                 f"accuracy is pessimistic; the ordering is the result.",
+                                 f"set deliberately over-samples the hard cases, so the "
+                                 f"absolute scores are pessimistic; the ordering is the "
+                                 f"result.",
                                  size_pt=9.5, widths_in=[3.0, 1.2, 1.2],
-                                 align_right_cols=(1, 2))
+                                 align_right_cols=(1, 2),
+                                     key="relation-results")
                 sci = bench.get("scibert") or {}
                 tf = bench.get("tfidf_lr") or {}
                 if sci and tf:
                     verdict = ("beats" if sci["macro_f1"] > tf["macro_f1"] else
                                "does not beat")
                     cur = D.add_paragraphs(cur, [
-                        f"The fine-tuned classifier {verdict} the TF-IDF baseline on macro-F1 "
+                        f"The fine-tuned classifier {verdict} the word-counting baseline "
+                        f"on macro-F1 "
                         f"({sci['macro_f1']:.3f} against {tf['macro_f1']:.3f}). "
                         + ("The margin is what the downstream stages rely on: a contrasts edge "
-                           "is only useful as evidence of disagreement if the classifier can "
-                           "tell it from a neutral comparison."
+                           "is only useful as evidence of disagreement if the classifier "
+                           "can tell it apart from a neutral comparison."
                            if sci["macro_f1"] > tf["macro_f1"] else
                            "This is a negative result and is reported as one: at pilot label "
                            "volume the fine-tune does not justify itself over a bag-of-ngrams "
@@ -1316,10 +1474,10 @@ class ReportBuilder:
                             + " and ".join(f"{k} (F1 {v['f1']:.2f}, {v['support']} gold examples)"
                                            for k, v in weak)
                             + ". Both are rare in the gold set, and the confusion matrices in "
-                              "Figure 7 show where their mass goes instead.",
+                              "{{FIG:fig_relation_confusion.png}} shows where their mass goes instead.",
                         ])
             cur = self.figure(cur, "fig_relation_confusion.png",
-                              "Row-normalised confusion matrices on the adjudicated gold set, for the "
+                              "Confusion matrices on the adjudicated gold set, for the "
                               "LLM labeller and for the fine-tuned classifier. Cell text is the "
                               "raw count.")
             cur = self.figure(cur, "fig_relation_models.png",
@@ -1338,16 +1496,16 @@ class ReportBuilder:
             cal = R.get("verifier_calibration.json") or {}
             th = cal.get("thresholds") or {}
             cur = D.add_paragraphs(cur, [
-                f"The two thresholds were fitted on {cal.get('n_dev_items')} hand-checked "
-                f"claim/evidence pairs by grid search, maximising macro-F1 over the three "
-                f"verdicts. The fitted values are a quote-match floor of "
+                f"The two thresholds were chosen by trying every combination on "
+                f"{cal.get('n_dev_items')} hand-checked claim-and-quote pairs and keeping the "
+                f"one with the best macro-F1 across the three outcomes. The fitted values are a quote-match floor of "
                 f"{th.get('quote_min')} and entailment thresholds of "
                 f"{th.get('entail_supported')} for supported and {th.get('entail_partial')} for "
                 f"partially supported, reaching {cal.get('best_macro_f1')} macro-F1 on the dev "
                 f"set"
                 + (f", against {cal.get('defaults_macro_f1')} for the hand-chosen defaults."
                    if cal.get("defaults_macro_f1") is not None else ".")
-                + " Figure 8 shows the dev items against the fitted boundaries.",
+                + " {{FIG:fig_verifier_calibration.png}} shows the dev items against the fitted boundaries.",
             ])
             cur = self.figure(cur, "fig_verifier_calibration.png",
                               "Verifier calibration. Left: each hand-checked dev item by quote "
@@ -1373,9 +1531,9 @@ class ReportBuilder:
                 f"{rates.get('unsupported', 0):.0%} unsupported. The quote check alone passes "
                 f"{v.get('quote_found_rate', 0):.0%} of claims, with a mean match score of "
                 f"{v.get('mean_quote_score')}, and the mean entailment probability is "
-                f"{v.get('mean_entail_prob')}. The difference between those two numbers is the "
-                f"stage's main finding: a model asked to quote verbatim mostly does, and still "
-                f"writes claims its own quotation does not entail. "
+                f"{v.get('mean_entail_prob')}. The difference between those two figures is "
+                f"the main finding of this step: a model asked to quote exactly usually does, "
+                f"and still writes claims its own quote does not prove. "
                 f"{v.get('fully_supported_papers')} of {v.get('n_papers')} papers had every "
                 f"claim supported, and those are the papers that become distillation data.",
             ])
@@ -1456,7 +1614,7 @@ class ReportBuilder:
             main = R.get("eval_arxiv.json", "main_table") or []
             cur = D.add_paragraphs(cur, [
                 f"The systems were compared on {n} frozen test-split examples under one model "
-                f"and one set of settings. Table 5 gives the main results; every cell is a mean "
+                f"and one set of settings. {{TAB:main-eval}} gives the main results; every cell is a mean "
                 f"with its bootstrap 95% confidence interval over examples.",
             ])
             if main:
@@ -1469,7 +1627,8 @@ class ReportBuilder:
                                  f"Main evaluation on the mined arXiv test split ({n} examples). "
                                  f"Mean [bootstrap 95% CI] over examples.",
                                  size_pt=7.0,
-                                 widths_in=[1.25, 0.3, 0.75, 0.75, 0.75, 0.75, 0.75, 0.8, 0.8])
+                                 widths_in=[1.25, 0.3, 0.75, 0.75, 0.75, 0.75, 0.75, 0.8, 0.8],
+                                     key="main-eval")
             cur = self.figure(cur, "fig_eval_arxiv.png",
                               "System comparison on the mined arXiv benchmark with bootstrap "
                               "95% confidence intervals.")
@@ -1497,7 +1656,8 @@ class ReportBuilder:
                                  "every LLM call in the central log, which covers all stages, "
                                  "not only evaluation.",
                                  size_pt=8.0, widths_in=[1.9, 0.5, 1.2, 1.0, 1.0, 0.8],
-                                 align_right_cols=(1, 2, 3, 4, 5))
+                                 align_right_cols=(1, 2, 3, 4, 5),
+                                     key="cost")
             cur = self.figure(cur, "fig_cost_latency.png",
                               "Wall-clock cost per benchmark example by system.")
             cur = self.figure(cur, "fig_usage_by_stage.png",
@@ -1547,12 +1707,13 @@ class ReportBuilder:
                      f"{dis.get('quote_found_rate', 0):.0%}"],
                     ["Latency per paper (s)", str(api.get("latency_s_mean", NA)),
                      str(dis.get("latency_s_mean", NA))],
-                    ["Monetary cost per paper", "API tokens (see Table 6)",
+                    ["Monetary cost per paper", "API tokens (see {{TAB:cost}})",
                      "0 (runs locally)"]]
             cur = self.table(cur, rows,
                              "Hosted extractor against the distilled extractor on held-out "
                              "test-split papers.",
-                             size_pt=9.0, widths_in=[2.6, 1.5, 1.5], align_right_cols=(1, 2))
+                             size_pt=9.0, widths_in=[2.6, 1.5, 1.5], align_right_cols=(1, 2),
+                                 key="distillation")
         else:
             cur = self._not_run(
                 cur, "Stage 6 distillation",
@@ -1562,56 +1723,135 @@ class ReportBuilder:
                 "notebooks/05_distill_extractor_qlora.ipynb on a Colab T4")
 
         # --------------------------------------- 4.7 qualitative + limitations
-        cur = D.add_heading(cur, "4.7  Qualitative examples and error analysis")
+        cur = D.add_heading(cur, "4.7  A worked example, end to end")
+        demo = self.demo_run()
+        if demo:
+            sm, vd = demo["summary"], demo["review_verdicts"]
+            ref = demo.get("reference") or {}
+            faith = (vd.get("after_revision") or {})
+            sents = vd.get("sentence_verdicts") or []
+            n = len(sents)
+            sup = faith.get("supported", 0)
+            st = sm.get("settings") or {}
+            model_name = st.get("model") or "the configured model"
+            local = (st.get("provider") or "").lower() == "ollama"
+            cur = D.add_paragraphs(cur, [
+                f"To show the whole pipeline on one case, the system was given a single test "
+                f"paper \u2014 {ref.get('arxiv_id', '')}, "
+                f"\u201c{(ref.get('title') or '')[:90]}\u201d \u2014 with its related-work section "
+                f"hidden and only the abstracts of the {len(ref.get('cited') or [])} papers it "
+                f"cites as input. The author's own section is "
+                f"{len((ref.get('rw_text') or '').split())} words long.",
+                f"The crew extracted {sm.get('n_claims', 0)} claims from "
+                f"{sm.get('n_records', 0)} papers and wrote {n} sentences, taking "
+                f"{sm.get('wall_s', 0):.0f} seconds. The checker then found "
+                f"{sup} of those {n} sentences supported by the evidence behind them.",
+            ])
+            # Illustrate with a sentence that *has* evidence: one citing nothing is
+            # unsupported by construction and shows nothing about the checker.
+            withev = [v for v in sents if v.get("best_evidence")]
+            if n and sup == 0 and withev:
+                worst = min(withev, key=lambda v: v.get("entail_prob") or 0)
+                cur = D.add_paragraphs(cur, [
+                    "That result \u2014 none of the sentences supported \u2014 is worth looking at "
+                    "closely, because it is the kind of failure this project was built to "
+                    "make visible rather than the kind it was built to avoid. The sentences "
+                    "read well and cite real papers from the correct set. What they do not do "
+                    "is say something the cited papers actually establish. Most describe what "
+                    "the citing paper itself contributes, which is reasonable prose for a "
+                    "related-work section and is exactly what cannot be checked against the "
+                    "cited literature.",
+                    f"One sentence shows the pattern. It reads: "
+                    f"\u201c{_clip(worst.get('text'), 210)}\u201d The closest supporting line the "
+                    f"checker could find in the paper that sentence cites is: "
+                    f"\u201c{_clip(worst.get('best_evidence'), 210)}\u201d The two are about the "
+                    f"same subject, which is why the sentence looks convincing, but the second "
+                    f"does not establish the first, and the score is "
+                    f"{worst.get('entail_prob', 0):.3f} out of 1.",
+                    "A reader skimming the citations would not catch this. An overlap score "
+                    "against the author's section would not catch it either, because the "
+                    "wording is close to what a related-work section normally looks like. The "
+                    "sentence-level check catches it, which is the argument for running the "
+                    "check at all.",
+                ])
+            elif n:
+                cur = D.add_paragraphs(cur, [
+                    f"{sup} of {n} sentences came through supported, and the ones that did not "
+                    f"are marked in the output rather than removed, so a reader can see which "
+                    f"parts of the text to treat with caution.",
+                ])
+            cur = D.add_body_paragraph(
+                cur, "{{FIG:fig_console_review.png}} shows the same run in the console, "
+                     "where selecting a sentence brings up the line it was checked against.")
+            cur = self.figure(cur, "fig_console_review.png",
+                              "The worked example in the console. Sentences are underlined by "
+                              "outcome, and selecting one shows the paper it cites, the "
+                              "closest supporting line, and the score. Here every sentence is "
+                              "unsupported.", width_in=6.0)
+            cur = D.add_paragraphs(cur, [
+                f"Two things about this run should be kept in mind when reading the number. "
+                f"It used {model_name}"
+                + (", a small model running on this laptop" if local else "")
+                + ", because the hosted "
+                f"account's daily allowance had already been spent on labelling; a larger "
+                f"model would be expected to do better. And it is one paper, so it "
+                f"demonstrates the mechanism rather than measuring it. Section 4.5 is where "
+                f"measurement across many papers belongs.",
+            ])
+        else:
+            cur = self._not_run(
+                cur, "The worked example",
+                "no demonstration run exists under results/flow_runs/.",
+                "python scripts/run_demo.py")
+
+        cur = D.add_heading(cur, "4.7.1  Error analysis")
         cur = D.add_paragraphs(cur, self.qualitative_section())
 
         cur = D.add_heading(cur, "4.8  Limitations and threats to validity")
         cur = D.add_bullets(cur, [
-            "Pilot sample sizes. The runs reported here are pilots, sized so that the whole "
-            "pipeline could be executed end to end on one laptop. The bootstrap intervals in "
-            "Table 5 are correspondingly wide, and no claim of a significant difference between "
-            "systems is made where those intervals overlap.",
-            "LLM-labelled training data. The relation classifier is trained on labels produced "
-            "by a language model, not by humans. Section 4.2 quantifies how far those labels can "
-            "be trusted against a adjudicated gold set, and the classifier cannot be better "
-            "than its teacher on classes where the teacher is weak. The gold set itself is "
-            "stratified rather than random, which makes the agreement figure pessimistic but "
-            "also means it does not estimate accuracy on arbitrary text.",
-            "Who produced the gold labels. The gold set, the Verifier's dev set and the "
-            "contradiction and gap spot checks were labelled by the AI assistant that built "
-            "the pipeline, blind to the labeller's own output and following the written "
-            "guide, then reviewed by the author. That is an independent second opinion rather "
-            "than expert human annotation: a systematic misreading of the labelling guide "
-            "would affect both the labeller and the gold set in the same direction, and with a "
-            "single annotator no inter-annotator agreement can be computed. Every agreement "
-            "figure in Section 4.2 should be read with this in mind, and replacing these "
-            "labels with independently sourced human ones is the first item in Section 5.2.",
-            "NLI model errors. The Verifier inherits the failure modes of its entailment model: "
-            "it is weak on numerical and quantitative entailment, which is exactly what many "
-            "scientific claims turn on, and it treats hedged statements inconsistently. A claim "
-            "marked unsupported is therefore evidence of a problem, not proof of one.",
-            "Quote matching is not provenance. A fuzzy match confirms that a passage resembles "
-            "something in the input text. It does not confirm that the passage means in context "
-            "what the claim says it means, and a short generic passage can match in several "
-            "places.",
-            "Leakage controls are partial. The target related-work text is time-split beyond "
-            "every evaluated model's cutoff, but the cited papers are necessarily older and "
-            "plausibly memorised. Topic familiarity may therefore help a model even though the "
-            "target text cannot.",
-            "Benchmark construction bias. Only papers with usable LaTeX, an identifiable "
-            "related-work section and at least 60% abstract coverage survive. That selects for "
-            "conventionally structured papers from authors who submit source, and the resulting "
-            "benchmark is not a random sample of the literature.",
-            "ROUGE against one reference. There are many defensible related-work sections for a "
-            "given set of cited papers, and only one is in the benchmark. This is why the "
-            "grounding metrics are reported beside the overlap metrics rather than beneath them.",
-            "Normalisation is incomplete. Dataset, metric and method names are merged by an "
-            "alias table plus fuzzy matching; unmatched names keep their surface form, so a "
-            "consensus group can be split in two and a contradiction consequently missed.",
-            "One provider, one run. Every system used the same provider and settings, which "
-            "makes the comparison fair but says nothing about how the conclusions transfer to a "
-            "different model family, and each configuration was run once, so run-to-run variance "
-            "is not measured.",
+            "Small runs. Everything here was run at a size that fits on one laptop and inside "
+            "a free API account. The confidence ranges are correspondingly wide, and no claim "
+            "is made that one system beats another where those ranges overlap.",
+            "The classifier learns from machine labels. The citation classifier is trained on "
+            "labels a language model produced, not a person. Section 4.2 measures how far "
+            "those labels can be trusted, and the classifier cannot be better than its teacher "
+            "on the labels the teacher gets wrong.",
+            "Who produced the gold labels. The hand-checked sets were labelled by the AI "
+            "assistant that built the pipeline, following the written guide and blind to the "
+            "labeller's output, then reviewed by the author. That is an independent second "
+            "opinion rather than expert human annotation. If the guide itself is misleading, "
+            "it would mislead the labeller and the gold set in the same direction, and with "
+            "one annotator there is no way to measure that. Replacing these with "
+            "independently sourced human labels is the first item in Section 5.2.",
+            "The checking model has its own weaknesses. It is unreliable on statements "
+            "involving numbers and quantities, which is exactly what many scientific claims "
+            "turn on, and it treats cautious wording inconsistently. A claim marked "
+            "unsupported is a sign that something needs looking at, not proof that it is "
+            "wrong.",
+            "Matching a quote is not the same as proving provenance. The check confirms that "
+            "a line resembling the quote appears in the text given to the extractor. It does "
+            "not confirm that the line means in context what the claim says it means, and a "
+            "short generic line can match in several places.",
+            "The date separation is partial. The section being scored was published after "
+            "every tested model's cut-off, but the papers it cites are necessarily older and "
+            "were probably in those models' training data. Familiarity with the subject may "
+            "therefore help a model even though it has not seen the answer.",
+            "The test set is not a random sample of research. Only papers with readable "
+            "source, an identifiable related-work section and most of their references "
+            "findable survive. That favours conventionally structured papers from authors who "
+            "publish their source files.",
+            "There is only one correct answer in the test set. Many different related-work "
+            "sections would be reasonable for the same set of cited papers, and only the one "
+            "the original author wrote is available. This is why the grounding measures are "
+            "reported next to the overlap scores rather than underneath them.",
+            "Name tidying is incomplete. Dataset, metric and method names are merged using a "
+            "known-alternatives list plus approximate matching; anything unmatched keeps its "
+            "original form, so one group of results can end up split in two and a "
+            "disagreement between papers missed as a result.",
+            "One provider, one run. Every system used the same model and settings, which makes "
+            "the comparison fair but says nothing about whether the conclusions hold for a "
+            "different model. Each configuration was run once, so run-to-run variation is not "
+            "measured.",
         ])
 
     # ------------------------------------------------- chapter 4 helper prose
@@ -1854,7 +2094,7 @@ class ReportBuilder:
                 verdict.append(
                     f"The crew improves on a single call on both dimensions measured here: "
                     f"ROUGE-L {r3:.3f} against {r1:.3f} and faithfulness {f3:.2f} against "
-                    f"{f1:.2f}. The confidence intervals in Table 5 should be read before "
+                    f"{f1:.2f}. The confidence ranges in {{TAB:main-eval}} should be read before "
                     f"treating either margin as settled.")
             else:
                 verdict.append(
@@ -1863,7 +2103,7 @@ class ReportBuilder:
                     f"{f1:.2f}. That is reported here as the finding it is. The machinery does "
                     f"deliver something the single call cannot — per-sentence provenance, a "
                     f"contradiction map and an auditable record of what was verified — but on "
-                    f"the metrics in Table 5 it did not pay for its extra calls at this scale.")
+                    f"the measures in {{TAB:main-eval}} it did not pay for its extra calls at this scale.")
         else:
             verdict.append(
                 "The full system comparison was not completed when this report was built, so no "
@@ -1871,27 +2111,27 @@ class ReportBuilder:
                 "single call. Section 4.5 states exactly which systems were run.")
 
         D.add_paragraphs(h, [
-            "This project built a literature-review assistant in which grounding is enforced "
-            "rather than requested. Claims must quote their evidence, a separate discriminative "
-            "model with fitted thresholds decides whether the quote supports the claim, review "
-            "sentences carry the identifiers of the claims behind them, and anything that fails "
-            "the check is revised once and then flagged rather than hidden. Two components were "
-            "fine-tuned on data reverse-engineered from real papers' related-work sections, and "
-            "the whole pipeline was evaluated against human-written sections on a time-split "
-            "benchmark.",
+            "This project built a tool that writes a literature review and is forced to show "
+            "its working. Claims must quote the line they came from. A separate model, with "
+            "thresholds chosen by testing rather than guessing, decides whether the quote "
+            "actually supports the claim. Every sentence of the written review carries the "
+            "claims behind it, and anything that fails the check is rewritten once and then "
+            "marked rather than hidden. Two parts of it were trained on data taken from real "
+            "papers' related-work sections, and the whole thing was tested against "
+            "human-written sections on papers published after the models' training cut-off.",
         ] + verdict + [
-            "The secondary findings are worth stating separately. A model asked to quote "
-            "verbatim usually does, and still writes claims its own quotation does not entail, "
-            "which is why the two Verifier checks are independent rather than one. Using the "
-            "Verifier as the filter on distillation data is a cheap way to keep a student model "
-            "from inheriting its teacher's unsupported extractions. And the cost of the agent "
-            "pipeline is large and measurable; reporting it beside the quality numbers is what "
-            "makes the trade visible at all.",
-            "Finally, the honesty constraints shaped the result as much as the design did. "
-            "Every number here is read from a file the code wrote, every figure is generated "
-            "from those files, six candidate references were dropped because no source would "
-            "confirm them, and the stages that could not be run on the available hardware are "
-            "named rather than estimated.",
+            "Three smaller findings are worth stating separately. A model asked to quote "
+            "exactly usually does, and still writes claims its own quote does not prove, "
+            "which is why the two checks are separate rather than one. Using the checker to "
+            "decide what a smaller model may learn from is a cheap way to stop it inheriting "
+            "the larger model's unsupported habits. And the cost of running a team of agents "
+            "is large and easy to measure, so reporting it next to the quality is what makes "
+            "the trade-off visible at all.",
+            "Finally, the rules this project set itself shaped the result as much as the "
+            "design did. Every number here is read from a file the code wrote. Every figure "
+            "is drawn from those files. Six candidate references were dropped because no "
+            "source would confirm they existed. The steps that could not be run on the "
+            "available hardware are named rather than guessed at.",
         ])
 
         # the template numbers this 5.4; the brief asks for it to be 5.2
@@ -2083,7 +2323,8 @@ class ReportBuilder:
         self.table(anchor, rows,
                    "Failure categories counted over every cached generation in the evaluation "
                    "run.", size_pt=8.5, widths_in=[2.9, 0.9, 0.9, 0.9, 0.9],
-                   align_right_cols=tuple(range(1, len(rows[0]))))
+                   align_right_cols=tuple(range(1, len(rows[0]))),
+                       key="error-categories")
 
     # ------------------------------------------------------------------- build
 
@@ -2128,6 +2369,7 @@ class ReportBuilder:
         self.error_table()
         self.chapter5()
         self.references()
+        self.resolve_refs()
         self.front_matter()
         self.page_breaks()
         self.out.parent.mkdir(parents=True, exist_ok=True)
@@ -2138,6 +2380,7 @@ class ReportBuilder:
             "references": len(self.refs.order),
             "unresolved_citations": self.refs.unresolved,
             "missing_figures": self.missing_figures,
+            "unresolved_references": self.unresolved_refs,
             "results_lookups_ok": self.R.hits,
             "results_lookups_missing": sorted(set(self.R.misses)),
             "notes": self.notes,

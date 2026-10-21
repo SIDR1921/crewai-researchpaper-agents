@@ -1,0 +1,67 @@
+{
+  "after_revision": {
+    "n_sentences": 6,
+    "supported": 0,
+    "partially": 0,
+    "unsupported": 6,
+    "faithfulness": 0.0,
+    "faithfulness_lenient": 0.0,
+    "mean_entail_prob": 0.0118
+  },
+  "sentence_verdicts": [
+    {
+      "text": "The introduction of Review Residuals in this work builds upon the principle that gating residual connections can lead to improved performance, as demonstrated by [bachlechner2021].",
+      "cited_paper_ids": [
+        "bachlechner2021"
+      ],
+      "entail_prob": 0.0007,
+      "verdict": "unsupported",
+      "best_evidence": "We show that the simplest architecture change of gating each residual connection using a single zero-initialized parameter satisfies initial dynamical isometry and outperforms more complex approaches."
+    },
+    {
+      "text": "By conditioning the gate on both the current state and the proposed update, Review Residuals offer a novel approach that differentiates itself from prior gated and scaled residuals, aligning with the human-factors principle of independent verification.",
+      "cited_paper_ids": [],
+      "entail_prob": 0.0,
+      "verdict": "unsupported",
+      "best_evidence": null
+    },
+    {
+      "text": "While [bachlechner2021] and [kimi2026] both explore gating mechanisms, their approaches differ: [bachlechner2021] uses a single zero-initialized parameter, whereas Review Residuals employ a learned, input-dependent gate.",
+      "cited_paper_ids": [
+        "bachlechner2021",
+        "kimi2026"
+      ],
+      "entail_prob": 0.0476,
+      "verdict": "unsupported",
+      "best_evidence": "We propose Attention Residuals (AttnRes), which replaces this fixed accumulation with softmax attention over preceding layer outputs, allowing each layer to selectively aggregate earlier representations with learned, input-dependent weights."
+    },
+    {
+      "text": "In contrast to [graves2016] and [banino2021], which focus on adaptive computation time and reasoning capabilities, respectively, Review Residuals aim to improve the reliability of updates in transformer architectures.",
+      "cited_paper_ids": [
+        "graves2016",
+        "banino2021"
+      ],
+      "entail_prob": 0.0103,
+      "verdict": "unsupported",
+      "best_evidence": "ACT does not yield large gains in performance; however it does provide intriguing insight into the structure of the data, with more computation allocated to harder-to-predict transitions, such as spaces between words and ends of sentences."
+    },
+    {
+      "text": "The gating mechanism in Review Residuals is designed to scale each update by a learned, input-dependent gate, which is a key distinction from the fixed coefficient of one used in traditional residual connections, as highlighted in [bachlechner2021].",
+      "cited_paper_ids": [
+        "bachlechner2021"
+      ],
+      "entail_prob": 0.0112,
+      "verdict": "unsupported",
+      "best_evidence": "We show that the simplest architecture change of gating each residual connection using a single zero-initialized parameter satisfies initial dynamical isometry and outperforms more complex approaches."
+    },
+    {
+      "text": "This approach is expected to provide more reliable updates, potentially leading to faster convergence and better test performance, as observed in [bachlechner2021] for Transformers.",
+      "cited_paper_ids": [
+        "bachlechner2021"
+      ],
+      "entail_prob": 0.0009,
+      "verdict": "unsupported",
+      "best_evidence": "When applied to 12 layer Transformers, it converges 56% faster on enwiki8."
+    }
+  ]
+}

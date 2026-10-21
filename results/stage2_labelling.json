@@ -1,0 +1,114 @@
+{
+  "n_labelled_total": 656,
+  "n_citing_papers": 106,
+  "label_distribution": {
+    "background": 513,
+    "uses-method": 35,
+    "uses-data": 14,
+    "extends": 1,
+    "compares-against": 15,
+    "supports": 33,
+    "contrasts": 45
+  },
+  "mean_confidence": 0.918,
+  "provider": {
+    "provider": "groq",
+    "model": "groq/qwen/qwen3.8-27b",
+    "small_model": "groq/openai/gpt-oss-20b",
+    "temperature": 0.1,
+    "max_tokens": 2048,
+    "seed": 0,
+    "hf_models": {
+      "scibert": "allenai/scibert_scivocab_uncased",
+      "nli": "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli",
+      "embed": "sentence-transformers/all-MiniLM-L6-v2",
+      "distill_base": "Qwen/Qwen2.5-1.5B-Instruct"
+    }
+  },
+  "usage": {
+    "overall": {
+      "calls": 160,
+      "failed": 49,
+      "prompt_tokens": 172714,
+      "completion_tokens": 49147,
+      "total_tokens": 221861,
+      "cost_usd": 0.0,
+      "latency_s_mean": 171.476,
+      "latency_s_total": 27436.2
+    },
+    "by_tag": {
+      "extract": {
+        "calls": 30,
+        "failed": 5,
+        "prompt_tokens": 16964,
+        "completion_tokens": 13903,
+        "total_tokens": 30867,
+        "cost_usd": 0.0,
+        "latency_s_mean": 752.191,
+        "latency_s_total": 22565.7
+      },
+      "probe": {
+        "calls": 5,
+        "failed": 0,
+        "prompt_tokens": 95,
+        "completion_tokens": 10,
+        "total_tokens": 105,
+        "cost_usd": 0.0,
+        "latency_s_mean": 0.315,
+        "latency_s_total": 1.6
+      },
+      "relation_labelling": {
+        "calls": 117,
+        "failed": 39,
+        "prompt_tokens": 151786,
+        "completion_tokens": 33380,
+        "total_tokens": 185166,
+        "cost_usd": 0.0,
+        "latency_s_mean": 0.843,
+        "latency_s_total": 98.6
+      },
+      "write_review": {
+        "calls": 8,
+        "failed": 5,
+        "prompt_tokens": 3869,
+        "completion_tokens": 1854,
+        "total_tokens": 5723,
+        "cost_usd": 0.0,
+        "latency_s_mean": 596.279,
+        "latency_s_total": 4770.2
+      }
+    },
+    "by_model": {
+      "?": {
+        "calls": 49,
+        "failed": 49,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "cost_usd": 0.0,
+        "latency_s_mean": 0.117,
+        "latency_s_total": 5.7
+      },
+      "groq/qwen/qwen3.8-27b": {
+        "calls": 103,
+        "failed": 0,
+        "prompt_tokens": 166487,
+        "completion_tokens": 45602,
+        "total_tokens": 212089,
+        "cost_usd": 0.0,
+        "latency_s_mean": 1.222,
+        "latency_s_total": 125.8
+      },
+      "qwen2.5:7b": {
+        "calls": 8,
+        "failed": 0,
+        "prompt_tokens": 6227,
+        "completion_tokens": 3545,
+        "total_tokens": 9772,
+        "cost_usd": 0.0,
+        "latency_s_mean": 3413.08,
+        "latency_s_total": 27304.6
+      }
+    }
+  }
+}

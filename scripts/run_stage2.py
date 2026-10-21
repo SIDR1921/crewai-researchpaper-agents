@@ -39,6 +39,32 @@ def read_contexts(path: Path, split: str | None = "train", in_rw_only: bool = Tr
     return rows
 
 
+def write_label_report(P) -> dict:
+    """Summarise the label cache into results/stage2_labelling.json.
+
+    Split out so the summary can be rebuilt from the cache alone. A labelling run
+    stopped part-way (a daily budget, a closed laptop) still has its labels on
+    disk; without this they would be invisible to the report.
+    """
+    from litreview.llm import SETTINGS
+    labelled = load_labels(P.data / "llm_labels.jsonl")
+    report = {"n_labelled_total": len(labelled),
+              "n_citing_papers": len({r.get("citing_id") for r in labelled}),
+              "label_distribution": {l: sum(1 for r in labelled if r["llm_label"] == l)
+                                     for l in LABELS},
+              "mean_confidence": round(
+                  sum(r.get("llm_confidence") or 0 for r in labelled) / max(1, len(labelled)), 3),
+              "provider": SETTINGS.describe(), "usage": usage_summary()}
+    (P.results / "stage2_labelling.json").write_text(json.dumps(report, indent=2))
+    return report
+
+
+def cmd_summarise(args) -> int:
+    rep = write_label_report(paths())
+    print(json.dumps({k: v for k, v in rep.items() if k not in ("provider", "usage")}, indent=2))
+    return 0
+
+
 def cmd_label(args) -> int:
     P = paths()
     print("provider probe:", json.dumps(probe(), indent=1))
@@ -48,13 +74,10 @@ def cmd_label(args) -> int:
     print(f"{len(rows)} candidate contexts; labelling up to {args.limit}")
     stats = label_contexts(rows, P.data / "llm_labels.jsonl", batch_size=args.batch_size,
                            limit=args.limit, progress=lambda b: tqdm(b, desc="label"))
-    labelled = load_labels(P.data / "llm_labels.jsonl")
-    report = {"stats": stats, "n_labelled_total": len(labelled),
-              "label_distribution": {l: sum(1 for r in labelled if r["llm_label"] == l)
-                                     for l in LABELS},
-              "provider": SETTINGS.describe(), "usage": usage_summary()}
+    report = write_label_report(P) | {"stats": stats}
     (P.results / "stage2_labelling.json").write_text(json.dumps(report, indent=2))
-    print(json.dumps({k: v for k, v in report.items() if k != "provider"}, indent=2))
+    print(json.dumps({k: v for k, v in report.items()
+                      if k not in ("provider", "usage")}, indent=2))
     return 0
 
 
@@ -157,6 +180,7 @@ def main() -> int:
     t.add_argument("--no-seed-corpora", dest="seed_corpora", action="store_false")
     t.add_argument("--seed-limit", type=int, default=2000)
     t.set_defaults(fn=cmd_train)
+    sub.add_parser("summarise").set_defaults(fn=cmd_summarise)
     b = sub.add_parser("bench")
     b.add_argument("--zero-shot", action="store_true", default=True)
     b.add_argument("--no-zero-shot", dest="zero_shot", action="store_false")

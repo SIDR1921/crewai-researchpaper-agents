@@ -21,7 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from litreview.config import paths                      # noqa: E402
+from litreview.config import SETTINGS, paths            # noqa: E402
 from litreview.eval.runner import load_benchmark        # noqa: E402
 from litreview.eval.systems import run_system, topic_of  # noqa: E402
 from litreview.llm import install_call_logger, tagged, usage_summary  # noqa: E402
@@ -95,6 +95,7 @@ def main() -> int:
                    for c in pair["cited"]]}, indent=2))
     (d / "summary.json").write_text(json.dumps({
         "topic": topic_of(pair)[:160], "demo_of": pair["arxiv_id"], "system": args.system,
+        "settings": SETTINGS.describe(),
         "n_records": len(records),
         "n_claims": sum(len(r.get("claims") or []) for r in records),
         "n_contradictions": out.get("n_contradictions"),

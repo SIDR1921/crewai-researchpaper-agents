@@ -1,13 +1,13 @@
 {
   "out": "/Users/siddharth1921/Claude/litreview/report/LitReview_Report.docx",
-  "figures": 13,
+  "figures": 10,
   "tables": 6,
   "references": 40,
   "unresolved_citations": [],
   "missing_figures": [],
   "unresolved_references": [],
   "blank_space_removed": {
-    "before_break": 15,
+    "before_break": 14,
     "runs": 5,
     "trailing": 1
   },

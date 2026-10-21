@@ -245,7 +245,7 @@ class ReportBuilder:
             return p
         item = self.fig.next(caption, source=filename)
         img = D.add_image(anchor_par, path, width_in=width_in)
-        cap = D.add_caption(img, f"{item['label']}: {caption}", size_pt=9.5)
+        cap = D.add_caption(img, f"{item['label']}: {caption}", size_pt=8.5)
         D.add_bookmark(cap, item["bookmark"])
         return cap
 
@@ -448,10 +448,10 @@ class ReportBuilder:
             "The work is divided between six agents, each with a narrow job: a Librarian that "
             "finds papers, an Extractor that pulls out claims, a Verifier that checks them, a "
             "Synthesist that compares papers, a Gap Analyst that looks for missing work, and a "
-            "Writer. The limits matter as much as the jobs. The Extractor cannot search for "
-            "anything, so it can only use the text it is given. The Writer cannot check its "
-            "own output, because a model asked to grade its own work tends to agree with "
-            "itself. Only the Verifier can run the checking model.",
+            "Writer. The limits matter as much as the jobs: the Extractor cannot search, so it "
+            "can only use the text it is given, and the Writer cannot check its own output, "
+            "because a model asked to grade its own work tends to agree with itself. Only the "
+            "Verifier may run the checking model.",
             "Two parts of the system are trained rather than prompted. The first is a "
             "classifier that reads a sentence containing a citation and decides what the "
             "sentence is doing: using the cited work, comparing against it, or disagreeing "
@@ -580,15 +580,14 @@ class ReportBuilder:
             f"attending to section structure and released the arXiv and PubMed datasets, while "
             f"XSum {C('Just the Summary')} pushed the other way, asking for a single sentence "
             f"that cannot be produced by copying.",
-            f"Writing a related-work section is the specific task this project is tested on, "
-            f"and it is older than today's models. Abu-Ra'ed and colleagues "
-            f"{C('Automatic related work section generation')} treated it as summarising the "
-            f"cited papers. Wang and colleagues {C('Neural Related Work Summarization')} let "
-            f"the model attend to both the citing paper's own content and the cited abstracts. "
-            f"Luu and colleagues {C('Explaining Relationships Between Scientific Documents')} "
-            f"reframed it as explaining the relationship between two papers rather than "
-            f"summarising one, which is the closest existing idea to the relation classifier "
-            f"used here.",
+            f"Writing a related-work section is older than today's models. Abu-Ra'ed and "
+            f"colleagues {C('Automatic related work section generation')} treated it as "
+            f"summarising the cited papers; Wang and colleagues "
+            f"{C('Neural Related Work Summarization')} attended to both the citing paper's "
+            f"content and the cited abstracts; and Luu and colleagues "
+            f"{C('Explaining Relationships Between Scientific Documents')} reframed it as "
+            f"explaining the relationship between two papers, the closest existing idea to the "
+            f"relation classifier used here.",
             f"Multi-XScience {C('Multi-XScience')} turned the task into a standard benchmark: "
             f"each example pairs a paper's related-work paragraph with the abstracts it cites, "
             f"which is exactly the setup described in Chapter 3. This project uses it as a "
@@ -603,18 +602,16 @@ class ReportBuilder:
 
         cur = D.add_heading(cur, "Working out what a citation is doing")
         cur = D.add_paragraphs(cur, [
-            f"Citations are not all the same, and the differences are what a review has to "
-            f"express. Early work looked at whether a citation was positive or negative and at "
-            f"how much surrounding text was needed to tell "
+            f"Citations differ, and the differences are what a review must express. Early "
+            f"work looked at citation sentiment and at how much surrounding text was needed "
             f"{C('Context-Enhanced Citation Sentiment Detection')}, "
-            f"{C('Mining the Context of Citations')}. Two datasets then made the task "
-            f"standard. ACL-ARC, used by Jurgens and colleagues "
-            f"{C('Measuring the Evolution of a Scientific Field')} to trace how a research "
-            f"field changes over time, has six categories. SciCite "
-            f"{C('Structural Scaffolds')} traded detail for size with three \u2014 background, "
-            f"method and result \u2014 and showed that training on related side-tasks helps. "
-            f"SciBERT {C('SciBERT')}, a version of BERT trained on scientific text, is the "
-            f"usual starting point for both, and is the starting point here.",
+            f"{C('Mining the Context of Citations')}. Two datasets made the task standard: "
+            f"ACL-ARC, used by Jurgens and colleagues "
+            f"{C('Measuring the Evolution of a Scientific Field')} to trace how a field "
+            f"changes, with six categories; and SciCite {C('Structural Scaffolds')}, which "
+            f"traded detail for size with three. SciBERT {C('SciBERT')}, a BERT trained on "
+            f"scientific text, is the usual starting point for both and is the starting point "
+            f"here.",
             "The seven categories used in this project are finer than SciCite's and cut "
             "differently from ACL-ARC's, for one reason that matters later. The system needs "
             "to tell a neutral comparison apart from an actual disagreement. Running someone "
@@ -639,22 +636,19 @@ class ReportBuilder:
             f"natural language inference \u2014 deciding whether one sentence follows from "
             f"another \u2014 and shows it works well once applied sentence by sentence rather "
             f"than to whole documents. That last design is the one the checker here copies.",
-            f"Working out whether these checks are any good needed human judgement. SummEval "
-            f"{C('SummEval')} re-annotated model outputs and showed how weakly the standard "
-            f"scores track what people actually think. Goyal and Durrett "
-            f"{C('Annotating and Modeling Fine-grained Factuality')} annotated errors in "
-            f"detail and found that different kinds of model fail in different ways. "
-            f"BERTScore {C('BERTScore')} is included here as a meaning-based alternative to "
-            f"ROUGE, not as a support check, because it compares generated text against a "
-            f"reference answer rather than against the source.",
-            f"The fact-checking field supplies the other half. FEVER {C('FEVER')} established "
-            f"the pattern of retrieving evidence and then testing whether it supports a claim. "
-            f"SciFact {C('Fact or Fiction')} moved that into science, where claims are hedged "
-            f"and evidence is technical. DeBERTa {C('DeBERTa')} is the model design whose "
-            f"trained versions are used here as the checker. The hallucination survey "
-            f"{C('Survey of Hallucination')} supplies the wording used throughout this report: "
-            f"a claim is called unsupported when the evidence does not establish it, which is "
-            f"a weaker and more checkable statement than calling it false.",
+            f"Judging those checks needed human annotation: SummEval {C('SummEval')} showed "
+            f"how weakly standard scores track human opinion, and Goyal and Durrett "
+            f"{C('Annotating and Modeling Fine-grained Factuality')} found that different "
+            f"model families fail differently. BERTScore {C('BERTScore')} is used here as a "
+            f"meaning-based alternative to ROUGE, not as a support check, since it compares "
+            f"against a reference rather than the source.",
+            f"Fact-checking supplies the other half: FEVER {C('FEVER')} established "
+            f"retrieving evidence then testing whether it supports a claim, and SciFact "
+            f"{C('Fact or Fiction')} moved that into science, where claims are hedged. DeBERTa "
+            f"{C('DeBERTa')} is the model design used here as the checker. The hallucination "
+            f"survey {C('Survey of Hallucination')} supplies this report's wording: a claim is "
+            f"unsupported when the evidence does not establish it, which is weaker and more "
+            f"checkable than calling it false.",
         ])
 
         cur = D.add_heading(cur, "Teams of language-model agents")
@@ -684,16 +678,14 @@ class ReportBuilder:
 
         cur = D.add_heading(cur, "Tools that help write literature reviews")
         cur = D.add_paragraphs(cur, [
-            f"Retrieval-augmented generation {C('Retrieval-Augmented Generation')}, with "
-            f"meaning-based search {C('Dense Passage Retrieval')}, is the standard way to tie "
-            f"a model's output to documents, and it is what the practical tools are built on. "
-            f"PaperQA {C('PaperQA')} answers scientific questions by forcing the answer "
-            f"through retrieved passages, and reports less invention as a result. STORM "
-            f"{C('Assisting in Writing Wikipedia-like Articles')} tackles longer writing: it "
-            f"researches a topic by simulating questions from several points of view, builds "
-            f"an outline, and writes a long article with citations. Su\u0161njak and colleagues "
-            f"{C('Automating Research Synthesis')} fine-tune subject-specific models for "
-            f"research synthesis and report the practical trade-offs.",
+            f"Retrieval-augmented generation {C('Retrieval-Augmented Generation')} with "
+            f"meaning-based search {C('Dense Passage Retrieval')} is the standard way to tie a "
+            f"model's output to documents, and the practical tools build on it. PaperQA "
+            f"{C('PaperQA')} forces answers through retrieved passages and reports less "
+            f"invention; STORM {C('Assisting in Writing Wikipedia-like Articles')} researches "
+            f"a topic from several points of view, builds an outline and writes a long cited "
+            f"article; Su\u0161njak and colleagues {C('Automating Research Synthesis')} "
+            f"fine-tune subject-specific models for research synthesis.",
             f"Two things separate the system built here. The first is how finely it is "
             f"accountable. STORM and PaperQA attach citations at the level of a passage or a "
             f"paragraph; this system records, for every sentence, the exact claim identifiers "
@@ -750,12 +742,11 @@ class ReportBuilder:
         D.add_paragraphs(h, [
             "Four trends run through the work above. Checking has moved from comparing "
             "against a reference answer towards testing whether the output follows from the "
-            "source, because reference comparison was shown not to track correctness. What a "
-            "statement is tied to has got finer, from whole documents towards single "
-            "passages. Citation types have been standardised, but at a level of detail chosen "
-            "to make annotation cheap rather than to make the labels useful afterwards. And "
-            "orchestration has moved from single prompts to teams of agents, usually with "
-            "self-criticism as the quality mechanism.",
+            "source. What a statement is tied to has got finer, from whole documents to single "
+            "passages. Citation types have been standardised, but at a granularity chosen to "
+            "make annotation cheap rather than the labels useful. And orchestration has moved "
+            "from single prompts to teams of agents, usually with self-criticism as the "
+            "quality mechanism.",
             "Three gaps follow, and they are what this project addresses. First, the "
             "support-checking work tests a summary against one source document, while the "
             "review-writing work generates from many sources and is scored against a reference "
@@ -983,13 +974,12 @@ class ReportBuilder:
             "explained by a different experimental setup, a different split or metric "
             "definition, a real disagreement, or not enough information \u2014 using only the "
             "quoted evidence.",
-            "Gap detection builds a table of how many papers apply each family of method to "
-            "each dataset. A cell that is empty or nearly empty, where both its row and its "
-            "column are otherwise busy, becomes a candidate gap. Two method families that both "
-            "appear on a dataset but between whose papers no comparison link exists become a "
-            "candidate of a different kind. Because an empty cell is often empty for a good "
-            "reason, the agent is required to argue both for and against each candidate before "
-            "giving a verdict, and both arguments are kept in the output.",
+            "Gap detection builds a table of how many papers apply each method family to each "
+            "dataset. An empty or near-empty cell whose row and column are otherwise busy "
+            "becomes a candidate, as do two families that share a dataset but whose papers "
+            "never compare against each other. Because a cell is often empty for a good "
+            "reason, the agent must argue both for and against each candidate before giving a "
+            "verdict, and both arguments are kept.",
         ])
 
         cur = D.add_heading(cur, "3.1.5  Putting the steps in order")
@@ -1035,14 +1025,13 @@ class ReportBuilder:
             "team. S4 is the full team using the small extractor. The cut-down version is S3 "
             "with the citation classifier switched off, which isolates what that classifier "
             "contributes.",
-            "Overlap with the human text is measured by ROUGE and BERTScore, but reported "
-            "beside three other measures, because overlap says nothing about whether the text "
-            "is true. Citation coverage is the share of the papers the human section cited "
-            "that the generated section discusses at all. Citation correctness is the share of "
-            "claimed links between a sentence and a paper where that paper's evidence actually "
-            "supports the sentence; this is the measure that catches a real citation attached "
-            "to a sentence the paper never supported. Faithfulness is as defined in equation "
-            "(3.4).",
+            "Overlap with the human text is measured by ROUGE and BERTScore, reported beside "
+            "three other measures because overlap says nothing about truth. Citation coverage "
+            "is the share of cited papers the generated section discusses at all. Citation "
+            "correctness is the share of claimed sentence-to-paper links where that paper's "
+            "evidence really supports the sentence \u2014 the measure that catches a real "
+            "citation attached to a sentence the paper never supported. Faithfulness is "
+            "equation (3.4).",
             "Every average is reported with a confidence interval computed by resampling:",
         ])
         cur = self.equation(
@@ -1065,38 +1054,17 @@ class ReportBuilder:
 
         cur = D.add_heading(cur, "3.1.8  Looking at what the system produced")
         cur = D.add_paragraphs(cur, [
-            "Everything the pipeline writes is a file, which is reliable but hard to read. A "
-            "small web application was therefore built on top of the same files, so the state "
-            "of a run and the evidence behind a sentence can be inspected directly. It adds no "
-            "logic of its own: it reads the same results files this report quotes, through the "
-            "same module, so the two cannot disagree about a number. {{FIG:fig_console_overview.png}} shows the "
-            "overview, which marks a step as pending when its results file does not exist "
-            "rather than showing an estimate.",
-        ])
-        cur = self.figure(cur, "fig_console_overview.png",
-                          "The console's overview. Each step shows real figures from the file "
-                          "it wrote, and a step that has not run is marked pending instead of "
-                          "being filled in with a guess.", width_in=4.4)
-        cur = D.add_paragraphs(cur, [
-            "The most useful view is the test set itself, in {{FIG:fig_console_benchmark.png}}. Opening a paper shows "
-            "the related-work section its author actually wrote, which is hidden from every "
-            "system and used only for scoring, beside the abstracts that are the only input a "
-            "system receives. References whose abstract could not be found are greyed out. "
-            "Seeing the two together makes the difficulty of the task concrete in a way a "
-            "table of scores does not.",
-        ])
-        cur = self.figure(cur, "fig_console_benchmark.png",
-                          "A test example in the console: the section the author wrote, above "
-                          "the cited papers' abstracts that are the only input a system is "
-                          "given. Greyed-out entries are references whose abstract could not "
-                          "be retrieved.", width_in=4.4)
-        cur = D.add_paragraphs(cur, [
-            "A third view shows a generated review one sentence at a time. Clicking a sentence "
-            "shows the quoted line it was checked against and the score it received, and "
-            "sentences are underlined green, orange or red according to the outcome. The same "
-            "information is also available to a conversational assistant through a small "
-            "read-only interface, so the state of a run can be asked about in words rather "
-            "than read off a screen.",
+            "Everything the pipeline writes is a file, which is reliable but hard to read, so a "
+            "small web application was built on the same files. It adds no logic of its own and "
+            "reads the same result files this report quotes, so the two cannot disagree about a "
+            "number, and it marks a step pending when its result file is absent rather than "
+            "showing an estimate. Its most useful view lists the mined test set: opening a "
+            "paper shows the related-work section its author wrote, hidden from every system "
+            "and used only for scoring, beside the abstracts that are the only input a system "
+            "receives. A second view shows a generated review one sentence at a time, "
+            "underlined by outcome, and brings up the quoted line behind any sentence that is "
+            "clicked; it is reproduced in Section 4.7. The same data is available to a "
+            "conversational assistant through a small read-only interface.",
         ])
 
         # 3.2 system requirements
@@ -1185,18 +1153,16 @@ class ReportBuilder:
         oa = R.get("stage1_yield.json", "openalex") or {}
         exhausted = R.get("stage1_yield.json", "budget.openalex_daily_budget_exhausted")
         parts = [
-            "References are resolved by identifier first and by title only as a fallback, "
-            "because an identifier resolves a reference exactly where a title match resolves "
-            "it merely probably, and because the fallback is what costs money."
+            "References are resolved by identifier first and by title only as a fallback: an "
+            "identifier resolves a reference exactly where a title match resolves it merely "
+            "probably, and the fallback is what spends the daily allowance."
         ]
         if ax.get("ids_cited_in_related_work"):
             parts.append(
-                f"Of the references cited from related-work sections, "
-                f"{ax['ids_cited_in_related_work']:,} carried an arXiv identifier and all "
-                f"{ax.get('resolved', 0):,} of them resolved through the arXiv API, every one "
-                f"with an abstract; for a corpus mined from arXiv this is also the more "
-                f"authoritative source, since it returns the abstract of the version actually "
-                f"cited.")
+                f"{ax['ids_cited_in_related_work']:,} cited references carried an arXiv "
+                f"identifier and all {ax.get('resolved', 0):,} resolved through the arXiv API, "
+                f"every one with an abstract \u2014 for a corpus mined from arXiv, also the more "
+                f"authoritative source.")
         if doi.get("dois_cited_in_related_work"):
             parts.append(
                 f"A further {doi['dois_cited_in_related_work']:,} carried a DOI, resolved "
@@ -1216,9 +1182,8 @@ class ReportBuilder:
                 "and the benchmark reported below is therefore a lower bound on what this "
                 "corpus yields.")
         parts.append(
-            "The gap between finding a reference and being able to read its abstract "
-            "is the main reason test examples are dropped: a paper can be identified "
-            "without its abstract being available to redistribute.")
+            "The gap between finding a reference and reading its abstract is the main reason "
+            "test examples are dropped.")
         return " ".join(parts)
 
     REF_TOKEN = re.compile(r"\{\{(FIG|TAB):([^}]+)\}\}")
@@ -1325,9 +1290,7 @@ class ReportBuilder:
             cur = self.figure(cur, "fig_stage1_yield.png",
                               "Mining yield: papers surviving each step, as counts and as a "
                               "percentage of the submissions listed.")
-            cur = self.figure(cur, "fig_dataset_stats.png",
-                              "Distribution of related-work length, number of cited papers and "
-                              "abstract coverage across the mined benchmark examples.")
+
             rows = [["Step", "Papers", "% of listed"]]
             for label, v in [("Submissions listed", y.get("listed")),
                              ("With LaTeX source", listed - (y.get("no_source") or 0)),
@@ -1653,9 +1616,7 @@ class ReportBuilder:
                                      key="cost")
             cur = self.figure(cur, "fig_cost_latency.png",
                               "Wall-clock cost per benchmark example by system.")
-            cur = self.figure(cur, "fig_usage_by_stage.png",
-                              "LLM tokens consumed per pipeline stage, from the central call "
-                              "log.")
+
         else:
             cur = self._not_run(cur, "The S1–S4 comparison",
                                 "results/eval_arxiv.json is absent.",
@@ -2228,20 +2189,20 @@ class ReportBuilder:
             tr = toc.rows[-1]._element
             tr.getparent().remove(tr)
         D.set_table_widths(toc, [1.05, 0.55, 2.2, 0.9, 0.9, 0.70])
-        D.set_cell(toc.rows[0].cells[0], "Table of Contents", bold=True, size_pt=12,
+        D.set_cell(toc.rows[0].cells[0], "Table of Contents", bold=True, size_pt=11,
                    align=A.CENTER)
 
         def toc_row(left: str, number: str, label: str, bookmark: str | None,
                     bold: bool = False, page_text: str = "") -> None:
             cells = toc.add_row().cells
-            D.set_cell(cells[0], left, bold=bold, size_pt=9.5)
-            D.set_cell(cells[1], number, bold=bold, size_pt=9.5)
+            D.set_cell(cells[0], left, bold=bold, size_pt=8.5)
+            D.set_cell(cells[1], number, bold=bold, size_pt=8.5)
             try:
                 mid = cells[2].merge(cells[4])
             except (IndexError, Exception):            # noqa: B014 - layout varies
                 mid = cells[2]
-            D.set_cell(mid, label, bold=bold, size_pt=9.5)
-            D.set_cell(cells[-1], page_text, size_pt=9.5, align=A.RIGHT,
+            D.set_cell(mid, label, bold=bold, size_pt=8.5)
+            D.set_cell(cells[-1], page_text, size_pt=8.5, align=A.RIGHT,
                        bookmark_ref=bookmark)
 
         toc_row("", "", "", None, bold=True, page_text="")
@@ -2263,13 +2224,13 @@ class ReportBuilder:
                 tr.getparent().remove(tr)
             D.set_table_widths(tbl, [0.80, 4.80, 0.70])
             hdr = tbl.rows[0].cells
-            D.set_cell(hdr[0], f"{kind} No", bold=True, size_pt=10)
-            D.set_cell(hdr[1], f"{kind} Title", bold=True, size_pt=10)
-            D.set_cell(hdr[2], "Page No", bold=True, size_pt=10, align=A.RIGHT)
+            D.set_cell(hdr[0], f"{kind} No", bold=True, size_pt=8.5)
+            D.set_cell(hdr[1], f"{kind} Title", bold=True, size_pt=8.5)
+            D.set_cell(hdr[2], "Page No", bold=True, size_pt=8.5, align=A.RIGHT)
             for item in counter.items:
                 cells = tbl.add_row().cells
-                D.set_cell(cells[0], item["label"], size_pt=9.5)
-                D.set_cell(cells[1], item.get("short") or item["caption"][:170], size_pt=9.5)
+                D.set_cell(cells[0], item["label"], size_pt=8.5)
+                D.set_cell(cells[1], item.get("short") or item["caption"][:170], size_pt=8.5)
                 D.set_cell(cells[2], "", size_pt=10, align=A.RIGHT,
                            bookmark_ref=item["bookmark"])
             if not counter.items:
@@ -2312,11 +2273,19 @@ class ReportBuilder:
                 D.page_break_before(p)
             except KeyError:
                 pass
-        try:                                   # the two lists share a page
-            _, p = self.anchor("LIST OF TABLES")
-            D.page_break_before(p)
-        except KeyError:
-            pass
+        # The contents, tables and figures lists flow together onto one page; the
+        # template starts each on its own, which leaves two sheets barely a third
+        # full.
+        for name in ("LIST OF TABLES", "LIST OF FIGURES"):
+            try:
+                _, hp = self.anchor(name)
+                D.strip_page_break(hp)
+                hp.paragraph_format.space_before = Pt(6)
+                hp.paragraph_format.space_after = Pt(2)
+                for r in hp.runs:
+                    r.font.size = Pt(11)
+            except KeyError:
+                pass
         # the Table of Contents table has no heading paragraph of its own
         tbl = self.doc.tables[0] if self.doc.tables else None
         if tbl is not None:

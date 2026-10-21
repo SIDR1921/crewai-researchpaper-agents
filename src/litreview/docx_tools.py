@@ -341,6 +341,22 @@ def delete_paragraph(par) -> None:
     el.getparent().remove(el)
 
 
+def strip_page_break(par) -> int:
+    """Remove manual page-break characters from a paragraph.
+
+    The template puts one before several headings. Where we want those headings
+    to flow on from what precedes them, the break has to go or the section starts
+    a near-empty page of its own.
+    """
+    n = 0
+    for br in par._element.findall(".//" + qn("w:br")):
+        if br.get(qn("w:type")) == "page":
+            br.getparent().remove(br)
+            n += 1
+    par.paragraph_format.page_break_before = False
+    return n
+
+
 def page_break_before(par) -> None:
     """Start this paragraph on a new page, and only one new page.
 

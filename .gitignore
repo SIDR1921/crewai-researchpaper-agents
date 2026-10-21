@@ -10,3 +10,7 @@ models/
 .DS_Store
 *.egg-info/
 notebooks/.ipynb_checkpoints/
+
+# Colab bundle (rebuild with scripts/make_colab_bundle.py)
+litreview_colab.zip
+~$*

@@ -18,8 +18,8 @@ NB_DIR = Path(__file__).resolve().parents[1] / "notebooks"
 
 REPO_URL = "https://github.com/REPLACE-ME/litreview.git"   # see the setup cell's note
 
-SETUP = '''# --- Colab setup: Drive, repo, secrets. Safe to re-run. ---
-import json, os, subprocess, sys
+SETUP = '''# --- Colab setup: Drive, project code, secrets. Safe to re-run. ---
+import json, os, subprocess, sys, zipfile
 from pathlib import Path
 ON_COLAB = "google.colab" in sys.modules or os.path.exists("/content")
 
@@ -30,27 +30,51 @@ if ON_COLAB:
 ROOT = "/content/drive/MyDrive/litreview" if ON_COLAB else os.path.abspath("..")
 os.makedirs(ROOT, exist_ok=True)
 os.environ["LITREVIEW_ROOT"] = ROOT
-
-# Install the project. Two options, in order of preference:
-#   1. the repo is already on Drive at MyDrive/litreview/repo  -> editable install
-#   2. clone it from git (set REPO_URL below)
 REPO = os.path.join(ROOT, "repo")
-if ON_COLAB:
-    if not os.path.exists(os.path.join(REPO, "pyproject.toml")):
-        subprocess.run(["git", "clone", "--depth", "1", REPO_URL, REPO], check=False)
+
+# Optional: a git URL to clone the project from. Leave blank to use the folder or
+# the zip on Drive instead.
+REPO_URL = ""
+
+def _find_project() -> str | None:
+    """Locate the project code: an existing folder, a zip on Drive, or a clone."""
     if os.path.exists(os.path.join(REPO, "pyproject.toml")):
-        subprocess.run([sys.executable, "-m", "pip", "-q", "install", "-e",
-                        f"{REPO}[ml,eval]"], check=True)
-    else:
+        return REPO
+    # a litreview_*.zip uploaded anywhere under MyDrive/litreview
+    zips = sorted(Path(ROOT).glob("litreview*.zip")) + sorted(Path(ROOT).glob("**/litreview*.zip"))
+    for z in zips:
+        print(f"extracting {z.name} ...")
+        with zipfile.ZipFile(z) as zf:
+            zf.extractall(ROOT)
+        # the zip may contain a top-level folder; find the pyproject inside
+        for cand in [REPO, ROOT] + [str(p.parent) for p in Path(ROOT).glob("*/pyproject.toml")]:
+            if os.path.exists(os.path.join(cand, "pyproject.toml")):
+                return cand
+    if REPO_URL:
+        subprocess.run(["git", "clone", "--depth", "1", REPO_URL, REPO], check=False)
+        if os.path.exists(os.path.join(REPO, "pyproject.toml")):
+            return REPO
+    return None
+
+if ON_COLAB:
+    found = _find_project()
+    if not found:
         raise SystemExit(
-            "Put this repository at MyDrive/litreview/repo (upload or clone it), "
-            "or set REPO_URL in this cell. The notebooks deliberately do not "
-            "contain a second copy of the code.")
+            "Could not find the project code. Do one of these, then re-run this cell:\n"
+            "  1. upload litreview_colab.zip into MyDrive/litreview/ (easiest), or\n"
+            "  2. copy the project folder to MyDrive/litreview/repo, or\n"
+            "  3. set REPO_URL above to a git URL.\n"
+            "The notebooks deliberately contain no second copy of the code.")
+    REPO = found
+    print("project code:", REPO)
+    subprocess.run([sys.executable, "-m", "pip", "-q", "install", "-e", f"{REPO}[ml,eval]"],
+                   check=True)
 
 import litreview
 from litreview.config import SETTINGS, paths, secret
 P = paths().mkdirs()
-print("litreview", litreview.__version__ if hasattr(litreview, "__version__") else "", "root:", P.root)
+print("data root:", P.root)
+print("already present:", {f.name: f.stat().st_size // 1024 for f in sorted(P.data.glob("*.jsonl"))})
 '''
 
 CONFIG_HEADER = "# ======================= CONFIG (the only cell to edit) ======================="

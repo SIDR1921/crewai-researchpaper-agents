@@ -5,22 +5,98 @@ Six notebooks, in order. All of them mount Google Drive, cache everything under
 disconnects, re-run all cells and each one continues from its cache. Only
 notebooks 02 and 05 need a GPU.
 
-## One-time setup
+The notebooks contain no copy of the project's logic. Each one's first cell
+installs this package from the code you put on Drive and then calls it, so the
+notebook and the local code can never drift apart.
 
-1. Create the Drive folder: `MyDrive/litreview/` (the notebooks create the
-   subfolders themselves).
-2. Add your secrets in Colab: **key icon in the left sidebar -> Add new secret**,
-   and enable notebook access for each.
+## Step 1 · Make the bundle
 
-   | Secret | Needed by | Notes |
-   |---|---|---|
-   | `GROQ_API_KEY` | 02, 03, 04, 05, 06 | free tier; the project's default provider |
-   | `OPENALEX_MAILTO` | 01, 04 | your email; puts you in OpenAlex's faster "polite pool" |
-   | `GEMINI_API_KEY` | optional | alternative provider, set `LITREVIEW_PROVIDER=gemini` |
-   | `S2_API_KEY` | optional | raises Semantic Scholar rate limits |
-   | `HF_TOKEN` | optional | only if a gated base model is used in 05 |
+On the machine that has this repository:
 
-3. For notebooks 02 and 05: **Runtime -> Change runtime type -> T4 GPU**.
+```bash
+python scripts/make_colab_bundle.py
+```
+
+That writes `litreview_colab.zip` (~30 MB) next to the repository. It holds the
+code and the data already mined on this machine, so a Colab run starts from that
+data instead of spending two to six hours re-mining arXiv:
+
+| In the zip | Why |
+|---|---|
+| `repo/` | the installable package (`src/`, `scripts/`, `app/`, `tests/`, `docs/`) and the six notebooks |
+| `data/*.jsonl`, `data/*.json` | mined contexts, related-work pairs, LLM labels, the gold set, the OpenAlex and arXiv metadata caches |
+| `data/sources/` | the 392 cached arXiv LaTeX sources, so Stage 1 re-parses locally and downloads nothing |
+| `results/`, `figures/` | so the report can be rebuilt on Colab without re-running anything |
+
+Left out, because Colab re-downloads them cheaply or must build them itself:
+`.venv/`, `.git/`, `data/cache/` (the SciCite and ACL-ARC corpora, 322 MB) and
+`models/` (the trained checkpoints, 420 MB). `--no-data` gives a code-only zip of
+about 1 MB; `--no-sources` drops the LaTeX cache, but then re-running notebook 01
+re-downloads every paper, because `write_datasets` rewrites
+`citation_contexts.jsonl` from scratch on each run rather than appending.
+
+## Step 2 · Put it on Drive
+
+1. Open [drive.google.com](https://drive.google.com) and create a folder named
+   **`litreview`** in *My Drive* (exactly that name, directly under My Drive).
+2. Drag `litreview_colab.zip` into it. Do **not** unzip it — the notebook does
+   that itself, into the right places.
+
+Two alternatives, if you would rather not use a zip: copy the project folder to
+`MyDrive/litreview/repo`, or set `REPO_URL` in the first cell of each notebook to
+a git URL it should clone. The first cell tries all three in that order.
+
+## Step 3 · Add the secrets in Colab
+
+In any Colab notebook: **key icon in the left sidebar → Add new secret**, and turn
+on *Notebook access* for each one.
+
+| Secret | Needed by | Notes |
+|---|---|---|
+| `GROQ_API_KEY` | 02, 03, 04, 05, 06 | free tier; the project's default provider |
+| `OPENALEX_MAILTO` | 01, 04 | your email; puts you in OpenAlex's faster "polite pool" |
+| `OPENALEX_API_KEY` | 01, 04 | optional; raises the daily OpenAlex budget |
+| `GEMINI_API_KEY` | optional | alternative provider, set `LITREVIEW_PROVIDER=gemini` |
+| `S2_API_KEY` | optional | raises Semantic Scholar rate limits |
+| `HF_TOKEN` | optional | only if a gated base model is used in 05 |
+
+Keys are read from Colab secrets at run time. None of them is stored in a
+notebook, and nothing writes a key to Drive.
+
+## Step 4 · Open the notebooks
+
+**File → Open notebook → Google Drive**, then pick
+`litreview/repo/notebooks/01_mine_arxiv.ipynb` — the zip has already been
+unpacked by then if you ran any notebook once, so the first time you may instead
+need **File → Upload notebook** and drag one notebook in from your machine; its
+first cell unpacks the zip, after which all six are visible on Drive.
+
+Run the first cell. It mounts Drive, finds the zip or folder, `pip install -e`s
+the package (about two minutes) and prints which data files are already present:
+
+```
+extracting litreview_colab.zip ...
+project code: /content/drive/MyDrive/litreview/repo
+data root: /content/drive/MyDrive/litreview
+already present: {'citation_contexts.jsonl': 28672, 'rw_pairs.jsonl': 2816, ...}
+```
+
+Then **Runtime → Run all**. Nothing already cached is paid for twice: with the
+bundled data, notebook 01 re-parses the cached LaTeX in a few minutes and makes
+no network calls at all, so the first stage that costs real time is notebook 02.
+
+For notebooks 02 and 05: **Runtime → Change runtime type → T4 GPU** first.
+
+## Which notebook to run for what
+
+* **Already have the mined data (the default bundle).** Go straight to 02 to
+  fine-tune SciBERT on a GPU, then 05, which is the one stage this project could
+  not run at all locally — QLoRA distillation needs CUDA.
+* **Want to mine more papers.** Edit the CONFIG cell in 01 and raise
+  `N_TRAIN`/`N_TEST`. It adds the new papers to the listings and re-derives both
+  datasets from the whole cache, so the existing rows survive.
+* **Just want the report rebuilt.** `!python scripts/build_report.py` in any
+  notebook, once the first cell has run.
 
 ## Drive folder layout
 
@@ -34,7 +110,7 @@ MyDrive/litreview/
     rw_pairs.jsonl                             # the benchmark
     multixscience_test.jsonl                   # external benchmark
     llm_labels.jsonl                           # LLM relation labels (append-only)
-    gold_blind.jsonl  gold_labelled.jsonl      # human gold set
+    gold_blind.jsonl  gold_labelled.jsonl      # adjudicated gold set
     verifier_dev.jsonl                         # hand-checked calibration items
     extractions_*.jsonl  claim_verdicts_*.json
     distill_train.jsonl                        # Verifier-filtered distillation data
